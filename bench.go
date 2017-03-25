@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/dgraph-io/badger/db"
@@ -16,9 +17,12 @@ import (
 )
 
 var (
-	flagValueSize = flag.Int("value_size", 500, "Size of each value.")
-	flagNum       = flag.Int("num", 1000000, "Number of key-value pairs to write.")
-	flagRandSize  = flag.Int("rand_size", 1000000, "Size of rng buffer.")
+	flagBench      = flag.String("bench", "", "Run which benchmark?")
+	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
+	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
+	flagNum        = flag.Int("num", 1000000, "Number of key-value pairs to write.")
+	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
+	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
 
 	rdbStore *store.Store
 	rng      randomGenerator
@@ -51,9 +55,33 @@ func (s *randomGenerator) Int() int {
 
 func main() {
 	x.Init()
+	x.AssertTrue(len(*flagBench) > 0)
+
 	rng.Init()
-	//	report("RocksDBWriteRandom", RocksDBWriteRandom())
-	report("BadgerWriteRandom", BadgerWriteRandom())
+
+	if *flagCpuProfile != "" {
+		f, err := os.Create(*flagCpuProfile)
+		if err != nil {
+			x.Fatalf("Profiler error: %v", err)
+		}
+		pprof.StartCPUProfile(f)
+	}
+
+	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
+	switch *flagBench {
+	case "writerandom":
+		if *flagDB == "badger" {
+			report("BadgerWriteRandom", BadgerWriteRandom())
+		} else {
+			report("RocksDBWriteRandom", RocksDBWriteRandom())
+		}
+	default:
+		x.Fatalf("Unknown benchmark: %v", *flagBench)
+	}
+
+	if *flagCpuProfile != "" {
+		pprof.StopCPUProfile()
+	}
 }
 
 func report(label string, d time.Duration) {
