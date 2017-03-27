@@ -151,11 +151,12 @@ func (s *BadgerAdapter) Init() {
 		WriteBufferSize: 1 << 20, // Size of each memtable.
 		CompactOpt: db.CompactOptions{
 			NumLevelZeroTables:      5,
-			NumLevelZeroTablesStall: 10,
-			LevelOneSize:            10 << 20,
+			NumLevelZeroTablesStall: 6,
+			LevelOneSize:            5 << 20,
 			MaxLevels:               7,
-			NumCompactWorkers:       3,
+			NumCompactWorkers:       6,
 			MaxTableSize:            2 << 20,
+			LevelSizeMultiplier:     5,
 			Verbose:                 *flagVerbose,
 		},
 	}
