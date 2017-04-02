@@ -1,4 +1,7 @@
+data
 *.pprof
 *.prof
 *.svg
 badger-bench
+ramdisk
+tmp
