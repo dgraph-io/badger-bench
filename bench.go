@@ -10,7 +10,7 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/dgraph-io/badger/db"
+	"github.com/dgraph-io/badger/badger"
 
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/dgraph-io/dgraph/x"
@@ -20,6 +20,7 @@ var (
 	flagBench      = flag.String("bench", "", "Run which benchmark?")
 	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
 	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
+	flagBatchSize  = flag.Int("batch_size", 1, "Size of writebatch.")
 	flagNum        = flag.Int("num", 1000000, "Number of key-value pairs to write.")
 	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
 	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
@@ -98,7 +99,9 @@ func main() {
 	label := fmt.Sprintf("%s_%s", *flagBench, *flagDB)
 	switch *flagBench {
 	case "writerandom":
-		fmt.Printf("%s: %s\n", label, report(WriteRandom(database), *flagNum))
+		WriteRandom(database)
+	case "batchwriterandom":
+		BatchWriteRandom(database)
 	default:
 		x.Fatalf("Unknown benchmark: %v", *flagBench)
 	}
@@ -117,6 +120,7 @@ type Database interface {
 	Init()
 	Close()
 	Put(key, val []byte)
+	BatchPut(key, val [][]byte)
 }
 
 type RocksDBAdapter struct {
@@ -126,7 +130,7 @@ type RocksDBAdapter struct {
 
 func (s *RocksDBAdapter) Init() {
 	var err error
-	s.dir, err = ioutil.TempDir("", "storetest_")
+	s.dir, err = ioutil.TempDir("/tmp", "storetest_")
 	x.Check(err)
 	s.rdb, err = store.NewStore(s.dir)
 	x.Check(err)
@@ -141,38 +145,56 @@ func (s *RocksDBAdapter) Put(key, val []byte) {
 	s.rdb.SetOne(key, val)
 }
 
+func (s *RocksDBAdapter) BatchPut(key, val [][]byte) {
+	wb := s.rdb.NewWriteBatch()
+	x.AssertTrue(len(key) == len(val))
+	for i := 0; i < len(key); i++ {
+		wb.Put(key[i], val[i])
+	}
+	x.Check(s.rdb.WriteBatch(wb))
+}
+
 type BadgerAdapter struct {
-	b   *db.DB
+	db  *badger.DB
 	dir string
 }
 
 func (s *BadgerAdapter) Init() {
-	opt := db.DBOptions{
-		WriteBufferSize: 1 << 20, // Size of each memtable.
-		CompactOpt: db.CompactOptions{
-			NumLevelZeroTables:      5,
-			NumLevelZeroTablesStall: 6,
-			LevelOneSize:            5 << 20,
-			MaxLevels:               7,
-			NumCompactWorkers:       6,
-			MaxTableSize:            2 << 20,
-			LevelSizeMultiplier:     5,
-			Verbose:                 *flagVerbose,
-		},
+	opt := badger.DBOptions{
+		WriteBufferSize:         1 << 20, // Size of each memtable.
+		NumLevelZeroTables:      5,
+		NumLevelZeroTablesStall: 6,
+		LevelOneSize:            5 << 20,
+		MaxLevels:               7,
+		NumCompactWorkers:       6,
+		MaxTableSize:            2 << 20,
+		LevelSizeMultiplier:     5,
+		Verbose:                 *flagVerbose,
+		Dir:                     "/tmp/badger_bench",
 	}
-	s.b = db.NewDB(opt)
+	s.db = badger.NewDB(opt)
 }
 
 func (s *BadgerAdapter) Close() {
 }
 
 func (s *BadgerAdapter) Put(key, val []byte) {
-	s.b.Put(key, val)
+	s.db.Put(key, val)
+}
+
+func (s *BadgerAdapter) BatchPut(key, val [][]byte) {
+	wb := badger.NewWriteBatch(len(key))
+	x.AssertTrue(len(key) == len(val))
+	for i := 0; i < len(key); i++ {
+		wb.Put(key[i], val[i])
+	}
+	x.Check(s.db.Write(wb))
 }
 
 // No batching.
-func WriteRandom(database Database) time.Duration {
+func WriteRandom(database Database) {
 	database.Init()
+	defer database.Close()
 	timeStart := time.Now()
 	timeLog := timeStart
 	timeLogI := 0
@@ -191,5 +213,33 @@ func WriteRandom(database Database) time.Duration {
 			timeLogI = i
 		}
 	}
-	return time.Since(timeStart)
+	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNum))
+}
+
+// With batching.
+func BatchWriteRandom(database Database) {
+	database.Init()
+	defer database.Close()
+	timeStart := time.Now()
+	timeLog := timeStart
+	timeLogI := 0
+	keys := make([][]byte, *flagBatchSize)
+	vals := make([][]byte, *flagBatchSize)
+
+	for i := 0; i < *flagNum; i++ {
+		for j := 0; j < *flagBatchSize; j++ {
+			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNum))
+			vals[j] = make([]byte, *flagValueSize)
+			rng.Bytes(vals[j])
+		}
+		database.BatchPut(keys, vals)
+		timeElapsed := time.Since(timeLog)
+		if timeElapsed > 5*time.Second {
+			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNum),
+				report(timeElapsed, (i-timeLogI)*(*flagBatchSize)))
+			timeLog = time.Now()
+			timeLogI = i
+		}
+	}
+	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNum*(*flagBatchSize)))
 }

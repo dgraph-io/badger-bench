@@ -3,3 +3,5 @@ data
 *.prof
 *.svg
 badger-bench
+ramdisk
+tmp

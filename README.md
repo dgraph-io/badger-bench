@@ -2,19 +2,24 @@
 Benchmarks of Badger
 
 ```
-export VERBOSE=true
+export VERBOSE=false
+export BATCHSIZE=100
 
 function run() {
 	DB=$1
 	TEST=$2
 	NUM=$3
 	VALUESIZE=$4
+	DIR=/tmp/badger_bench
+
+	rm -Rf $DIR && mkdir -p $DIR
 
 	./badger-bench \
 	-bench $TEST \
 	-num $NUM \
 	-value_size $VALUESIZE \
 	-rand_size 0 \
+	-batch_size $BATCHSIZE \
 	-db $DB \
 	-cpu_profile data/${DB}_${TEST}_${NUM}_${VALUESIZE}.pprof \
 	-verbose=$VERBOSE
@@ -25,6 +30,7 @@ function run() {
 	> data/${DB}_${TEST}_${NUM}_${VALUESIZE}.svg
 }
 
+
 run badger writerandom 10000000 10
 run rocksdb writerandom 10000000 10
 
@@ -33,5 +39,9 @@ run rocksdb writerandom 10000000 100
 
 run badger writerandom 1000000 1000
 run rocksdb writerandom 1000000 1000
+
+run badger  batchwriterandom 100000 100
+run rocksdb batchwriterandom 100000 100
+
 ```
 
