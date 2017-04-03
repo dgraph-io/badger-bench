@@ -21,10 +21,12 @@ var (
 	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
 	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
 	flagBatchSize  = flag.Int("batch_size", 1, "Size of writebatch.")
-	flagNum        = flag.Int("num", 1000000, "Number of key-value pairs to write.")
+	flagNumWrites  = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
+	flagNumReads   = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
 	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
 	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
 	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
+	flagDir        = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
 
 	rdbStore *store.Store
 	rng      randomGenerator
@@ -96,12 +98,13 @@ func main() {
 	defer database.Close()
 
 	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
-	label := fmt.Sprintf("%s_%s", *flagBench, *flagDB)
 	switch *flagBench {
 	case "writerandom":
 		WriteRandom(database)
 	case "batchwriterandom":
 		BatchWriteRandom(database)
+	case "readrandom":
+		ReadRandom(database)
 	default:
 		x.Fatalf("Unknown benchmark: %v", *flagBench)
 	}
@@ -121,6 +124,7 @@ type Database interface {
 	Close()
 	Put(key, val []byte)
 	BatchPut(key, val [][]byte)
+	Get(key []byte)
 }
 
 type RocksDBAdapter struct {
@@ -130,15 +134,14 @@ type RocksDBAdapter struct {
 
 func (s *RocksDBAdapter) Init() {
 	var err error
-	s.dir, err = ioutil.TempDir("/tmp", "storetest_")
+	s.dir, err = ioutil.TempDir(*flagDir, "storetest_")
 	x.Check(err)
-	s.rdb, err = store.NewStore(s.dir)
+	s.rdb, err = store.NewSyncStore(s.dir)
 	x.Check(err)
 }
 
 func (s *RocksDBAdapter) Close() {
-	os.RemoveAll(s.dir)
-	s.rdb.Close()
+	//	s.rdb.Close()
 }
 
 func (s *RocksDBAdapter) Put(key, val []byte) {
@@ -152,6 +155,11 @@ func (s *RocksDBAdapter) BatchPut(key, val [][]byte) {
 		wb.Put(key[i], val[i])
 	}
 	x.Check(s.rdb.WriteBatch(wb))
+}
+
+func (s *RocksDBAdapter) Get(key []byte) {
+	_, err := s.rdb.Get(key)
+	x.Check(err)
 }
 
 type BadgerAdapter struct {
@@ -170,7 +178,7 @@ func (s *BadgerAdapter) Init() {
 		MaxTableSize:            2 << 20,
 		LevelSizeMultiplier:     5,
 		Verbose:                 *flagVerbose,
-		Dir:                     "/tmp/badger_bench",
+		Dir:                     *flagDir,
 	}
 	s.db = badger.NewDB(opt)
 }
@@ -191,6 +199,10 @@ func (s *BadgerAdapter) BatchPut(key, val [][]byte) {
 	x.Check(s.db.Write(wb))
 }
 
+func (s *BadgerAdapter) Get(key []byte) {
+	s.db.Get(key)
+}
+
 // No batching.
 func WriteRandom(database Database) {
 	database.Init()
@@ -200,20 +212,20 @@ func WriteRandom(database Database) {
 	timeLogI := 0
 	// If you use b.N, you might add too few samples and be working only in memory.
 	// We need to fix a large number of pairs. This is what LevelDB benchmark does as well.
-	for i := 0; i < *flagNum; i++ {
-		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNum))
+	for i := 0; i < *flagNumWrites; i++ {
+		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
 		val := make([]byte, *flagValueSize)
 		rng.Bytes(val)
 		database.Put(key, val)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNum),
+			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, i-timeLogI))
 			timeLog = time.Now()
 			timeLogI = i
 		}
 	}
-	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNum))
+	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites))
 }
 
 // With batching.
@@ -226,20 +238,66 @@ func BatchWriteRandom(database Database) {
 	keys := make([][]byte, *flagBatchSize)
 	vals := make([][]byte, *flagBatchSize)
 
-	for i := 0; i < *flagNum; i++ {
+	for i := 0; i < *flagNumWrites; i++ {
 		for j := 0; j < *flagBatchSize; j++ {
-			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNum))
+			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
 			vals[j] = make([]byte, *flagValueSize)
 			rng.Bytes(vals[j])
 		}
 		database.BatchPut(keys, vals)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNum),
+			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, (i-timeLogI)*(*flagBatchSize)))
 			timeLog = time.Now()
 			timeLogI = i
 		}
 	}
-	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNum*(*flagBatchSize)))
+	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites*(*flagBatchSize)))
+}
+
+// No batching.
+func ReadRandom(database Database) {
+	database.Init()
+	defer database.Close()
+
+	keys := make([][]byte, *flagBatchSize)
+	vals := make([][]byte, *flagBatchSize)
+	// Write some key-value pairs first.
+	// TODO: Allow user to just specify a database to open.
+	timeLog := time.Now()
+	x.Printf("Preparing database")
+	for i := 0; i < *flagNumWrites; i++ {
+		for j := 0; j < *flagBatchSize; j++ {
+			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
+			vals[j] = make([]byte, *flagValueSize)
+			rng.Bytes(vals[j])
+		}
+		database.BatchPut(keys, vals)
+		timeElapsed := time.Since(timeLog)
+		if timeElapsed > 5*time.Second {
+			x.Printf("%.2f percent written\n", float64(i)*100.0/float64(*flagNumWrites))
+			timeLog = time.Now()
+		}
+	}
+
+	x.Printf("Slight pause\n")
+	time.Sleep(time.Second)
+
+	x.Printf("Starting reads")
+	timeLogI := 0
+	timeStart := time.Now()
+	timeLog = timeStart
+	for i := 0; i < *flagNumReads; i++ {
+		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumReads))
+		database.Get(key)
+		timeElapsed := time.Since(timeLog)
+		if timeElapsed > 5*time.Second {
+			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumReads),
+				report(timeElapsed, (i-timeLogI)))
+			timeLog = time.Now()
+			timeLogI = i
+		}
+	}
+	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumReads))
 }
