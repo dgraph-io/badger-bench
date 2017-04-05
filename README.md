@@ -5,6 +5,7 @@ Benchmarks of Badger
 export VERBOSE=false
 export BATCHSIZE=100
 export DIR=/tmp/badger_bench
+export DIRLOW=/tmp/ramdisk
 
 function run() {
 	DB=$1
@@ -24,7 +25,8 @@ function run() {
 	-db $DB \
 	-cpu_profile data/${DB}_${TEST}_${WRITES}_${READS}_${VALUESIZE}.pprof \
 	-verbose=$VERBOSE \
-	-dir $DIR
+	-dir $DIR \
+	-dir_low_levels $DIRLOW
 	
 	go tool pprof -svg \
 	badger-bench \
@@ -44,7 +46,17 @@ run rocksdb writerandom 1000000 0 1000
 run badger  batchwriterandom 100000 0 100
 run rocksdb batchwriterandom 100000 0 100
 
-run badger  readrandom 100000 10000000 100
+run badger  readrandom 100000 10000000 100 
+2017/04/03 20:13:36 bench.go:302: Overall: 19.10s, 57.91Mb/s
+
 run rocksdb readrandom 100000 10000000 100
+2017/04/03 20:15:17 bench.go:302: Overall: 15.69s, 70.51Mb/s  // Before value threshold.
+
+run badger  readrandom 100000 10000000 10
+2017/04/03 20:11:13 bench.go:302: Overall: 16.45s, 15.07Mb/s
+
+run rocksdb readrandom 100000 10000000 10
+2017/04/03 20:16:57 bench.go:302: Overall: 20.93s, 11.85Mb/s
+
 ```
 

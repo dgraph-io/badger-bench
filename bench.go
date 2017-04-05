@@ -11,22 +11,25 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger/value"
 
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/dgraph-io/dgraph/x"
 )
 
 var (
-	flagBench      = flag.String("bench", "", "Run which benchmark?")
-	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
-	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
-	flagBatchSize  = flag.Int("batch_size", 1, "Size of writebatch.")
-	flagNumWrites  = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
-	flagNumReads   = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
-	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
-	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
-	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
-	flagDir        = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
+	flagBench        = flag.String("bench", "", "Run which benchmark?")
+	flagDB           = flag.String("db", "", "Which DB: rocksdb, badger")
+	flagValueSize    = flag.Int("value_size", 100, "Size of each value.")
+	flagBatchSize    = flag.Int("batch_size", 1, "Size of writebatch.")
+	flagNumWrites    = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
+	flagNumReads     = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
+	flagRandSize     = flag.Int("rand_size", 1000000, "Size of rng buffer.")
+	flagCpuProfile   = flag.String("cpu_profile", "", "Write cpu profile to file.")
+	flagVerbose      = flag.Bool("verbose", false, "Verbose.")
+	flagDir          = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
+	flagDirLowLevels = flag.String("dir_low_levels", "/tmp/badger_bench",
+		"Where data is stored for lower levels for Badger.")
 
 	rdbStore *store.Store
 	rng      randomGenerator
@@ -179,7 +182,9 @@ func (s *BadgerAdapter) Init() {
 		LevelSizeMultiplier:     5,
 		Verbose:                 *flagVerbose,
 		Dir:                     *flagDir,
+		DirLowLevels:            *flagDirLowLevels,
 	}
+	fmt.Printf("Dir: %s\nDirForLowLevels: %s\n", *flagDir, *flagDirLowLevels)
 	s.db = badger.NewDB(opt)
 }
 
@@ -191,12 +196,15 @@ func (s *BadgerAdapter) Put(key, val []byte) {
 }
 
 func (s *BadgerAdapter) BatchPut(key, val [][]byte) {
-	wb := badger.NewWriteBatch(len(key))
+	var entries []value.Entry
 	x.AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
-		wb.Put(key[i], val[i])
+		entries = append(entries, value.Entry{
+			Key:   key[i],
+			Value: val[i],
+		})
 	}
-	x.Check(s.db.Write(wb))
+	x.Check(s.db.Write(entries))
 }
 
 func (s *BadgerAdapter) Get(key []byte) {
@@ -205,8 +213,7 @@ func (s *BadgerAdapter) Get(key []byte) {
 
 // No batching.
 func WriteRandom(database Database) {
-	database.Init()
-	defer database.Close()
+	fmt.Println("WriteRandom test")
 	timeStart := time.Now()
 	timeLog := timeStart
 	timeLogI := 0
@@ -230,8 +237,7 @@ func WriteRandom(database Database) {
 
 // With batching.
 func BatchWriteRandom(database Database) {
-	database.Init()
-	defer database.Close()
+	fmt.Println("BatchWriteRandom test")
 	timeStart := time.Now()
 	timeLog := timeStart
 	timeLogI := 0
@@ -258,8 +264,7 @@ func BatchWriteRandom(database Database) {
 
 // No batching.
 func ReadRandom(database Database) {
-	database.Init()
-	defer database.Close()
+	fmt.Println("ReadRandom test")
 
 	keys := make([][]byte, *flagBatchSize)
 	vals := make([][]byte, *flagBatchSize)
