@@ -18,18 +18,16 @@ import (
 )
 
 var (
-	flagBench        = flag.String("bench", "", "Run which benchmark?")
-	flagDB           = flag.String("db", "", "Which DB: rocksdb, badger")
-	flagValueSize    = flag.Int("value_size", 100, "Size of each value.")
-	flagBatchSize    = flag.Int("batch_size", 1, "Size of writebatch.")
-	flagNumWrites    = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
-	flagNumReads     = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
-	flagRandSize     = flag.Int("rand_size", 1000000, "Size of rng buffer.")
-	flagCpuProfile   = flag.String("cpu_profile", "", "Write cpu profile to file.")
-	flagVerbose      = flag.Bool("verbose", false, "Verbose.")
-	flagDir          = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
-	flagDirLowLevels = flag.String("dir_low_levels", "/tmp/badger_bench",
-		"Where data is stored for lower levels for Badger.")
+	flagBench      = flag.String("bench", "", "Run which benchmark?")
+	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
+	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
+	flagBatchSize  = flag.Int("batch_size", 1, "Size of writebatch.")
+	flagNumWrites  = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
+	flagNumReads   = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
+	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
+	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
+	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
+	flagDir        = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
 
 	rdbStore *store.Store
 	rng      randomGenerator
@@ -171,20 +169,11 @@ type BadgerAdapter struct {
 }
 
 func (s *BadgerAdapter) Init() {
-	opt := badger.DBOptions{
-		WriteBufferSize:         1 << 20, // Size of each memtable.
-		NumLevelZeroTables:      5,
-		NumLevelZeroTablesStall: 6,
-		LevelOneSize:            5 << 20,
-		MaxLevels:               7,
-		NumCompactWorkers:       6,
-		MaxTableSize:            2 << 20,
-		LevelSizeMultiplier:     5,
-		Verbose:                 *flagVerbose,
-		Dir:                     *flagDir,
-		DirLowLevels:            *flagDirLowLevels,
-	}
-	fmt.Printf("Dir: %s\nDirForLowLevels: %s\n", *flagDir, *flagDirLowLevels)
+	opt := badger.DefaultOptions
+	opt.Verbose = *flagVerbose
+	opt.Dir = *flagDir
+
+	fmt.Printf("Dir: %s\n", *flagDir)
 	s.db = badger.NewDB(opt)
 }
 
