@@ -1,14 +1,19 @@
 package main
 
 import (
+	"context"
 	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"net/http"
 	"os"
 	"runtime/pprof"
+	"sync"
 	"time"
+
+	"golang.org/x/net/trace"
 
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/value"
@@ -72,48 +77,6 @@ func (s *randomGenerator) Int() int {
 	return int(binary.LittleEndian.Uint32(buf[:]))
 }
 
-func main() {
-	x.Init()
-	x.AssertTrue(len(*flagBench) > 0)
-	x.AssertTrue(*flagValueSize > 0)
-	rng.Init()
-
-	if *flagCpuProfile != "" {
-		f, err := os.Create(*flagCpuProfile)
-		if err != nil {
-			x.Fatalf("Profiler error: %v", err)
-		}
-		pprof.StartCPUProfile(f)
-	}
-
-	var database Database
-	switch *flagDB {
-	case "badger":
-		database = new(BadgerAdapter)
-	case "rocksdb":
-		database = new(RocksDBAdapter)
-	default:
-		x.Fatalf("Database invalid: %v", *flagDB)
-	}
-	database.Init()
-	defer database.Close()
-
-	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
-	switch *flagBench {
-	case "writerandom":
-		WriteRandom(database)
-	case "batchwriterandom":
-		BatchWriteRandom(database)
-	case "readrandom":
-		ReadRandom(database)
-	default:
-		x.Fatalf("Unknown benchmark: %v", *flagBench)
-	}
-	if *flagCpuProfile != "" {
-		pprof.StopCPUProfile()
-	}
-}
-
 func report(d time.Duration, n int) string {
 	secs := d.Seconds()
 	throughput := float64(n*(16+*flagValueSize)) / ((1 << 20) * secs)
@@ -121,11 +84,11 @@ func report(d time.Duration, n int) string {
 }
 
 type Database interface {
-	Init()
+	Init(basedir string)
 	Close()
-	Put(key, val []byte)
-	BatchPut(key, val [][]byte)
-	Get(key []byte)
+	Put(ctx context.Context, key, val []byte)
+	BatchPut(ctx context.Context, key, val [][]byte)
+	Get(ctx context.Context, key []byte)
 }
 
 type RocksDBAdapter struct {
@@ -133,9 +96,9 @@ type RocksDBAdapter struct {
 	dir string
 }
 
-func (s *RocksDBAdapter) Init() {
+func (s *RocksDBAdapter) Init(basedir string) {
 	var err error
-	s.dir, err = ioutil.TempDir(*flagDir, "storetest_")
+	s.dir, err = ioutil.TempDir(basedir, "storetest_")
 	x.Check(err)
 	s.rdb, err = store.NewSyncStore(s.dir)
 	x.Check(err)
@@ -145,11 +108,11 @@ func (s *RocksDBAdapter) Close() {
 	//	s.rdb.Close()
 }
 
-func (s *RocksDBAdapter) Put(key, val []byte) {
+func (s *RocksDBAdapter) Put(ctx context.Context, key, val []byte) {
 	s.rdb.SetOne(key, val)
 }
 
-func (s *RocksDBAdapter) BatchPut(key, val [][]byte) {
+func (s *RocksDBAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
 	wb := s.rdb.NewWriteBatch()
 	x.AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
@@ -158,7 +121,7 @@ func (s *RocksDBAdapter) BatchPut(key, val [][]byte) {
 	x.Check(s.rdb.WriteBatch(wb))
 }
 
-func (s *RocksDBAdapter) Get(key []byte) {
+func (s *RocksDBAdapter) Get(ctx context.Context, key []byte) {
 	_, err := s.rdb.Get(key)
 	x.Check(err)
 }
@@ -168,30 +131,25 @@ type BadgerAdapter struct {
 	dir string
 }
 
-func (s *BadgerAdapter) Init() {
-	opt := badger.DBOptions{
-		NumLevelZeroTables:      5,
-		NumLevelZeroTablesStall: 6,
-		LevelOneSize:            5 << 20,
-		MaxLevels:               7,
-		NumCompactWorkers:       6,
-		MaxTableSize:            2 << 20,
-		LevelSizeMultiplier:     5,
-		Verbose:                 *flagVerbose,
-		Dir:                     *flagDir,
-	}
+func (s *BadgerAdapter) Init(basedir string) {
+	opt := badger.DefaultOptions
+	opt.Verbose = *flagVerbose
+	dir, err := ioutil.TempDir(basedir, "badger")
+	x.Check(err)
+	opt.Dir = dir
+
 	fmt.Printf("Dir: %s\n", *flagDir)
-	s.db = badger.NewDB(opt)
+	s.db = badger.NewDB(&opt)
 }
 
 func (s *BadgerAdapter) Close() {
 }
 
-func (s *BadgerAdapter) Put(key, val []byte) {
-	s.db.Put(key, val)
+func (s *BadgerAdapter) Put(ctx context.Context, key, val []byte) {
+	s.db.Put(ctx, key, val)
 }
 
-func (s *BadgerAdapter) BatchPut(key, val [][]byte) {
+func (s *BadgerAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
 	var entries []value.Entry
 	x.AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
@@ -200,15 +158,16 @@ func (s *BadgerAdapter) BatchPut(key, val [][]byte) {
 			Value: val[i],
 		})
 	}
-	x.Check(s.db.Write(entries))
+	x.Check(s.db.Write(ctx, entries))
 }
 
-func (s *BadgerAdapter) Get(key []byte) {
-	s.db.Get(key)
+func (s *BadgerAdapter) Get(ctx context.Context, key []byte) {
+	s.db.Get(ctx, key)
 }
 
 // No batching.
 func WriteRandom(database Database) {
+	ctx := context.Background()
 	fmt.Println("WriteRandom test")
 	timeStart := time.Now()
 	timeLog := timeStart
@@ -219,10 +178,10 @@ func WriteRandom(database Database) {
 		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
 		val := make([]byte, *flagValueSize)
 		rng.Bytes(val)
-		database.Put(key, val)
+		database.Put(ctx, key, val)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumWrites),
+			x.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, i-timeLogI))
 			timeLog = time.Now()
 			timeLogI = i
@@ -246,10 +205,13 @@ func BatchWriteRandom(database Database) {
 			vals[j] = make([]byte, *flagValueSize)
 			rng.Bytes(vals[j])
 		}
-		database.BatchPut(keys, vals)
+		tr := trace.New("BatchWrite", "BatchPut")
+		ctx := trace.NewContext(context.Background(), tr)
+		database.BatchPut(ctx, keys, vals)
+		tr.Finish()
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumWrites),
+			x.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, (i-timeLogI)*(*flagBatchSize)))
 			timeLog = time.Now()
 			timeLogI = i
@@ -261,6 +223,7 @@ func BatchWriteRandom(database Database) {
 // No batching.
 func ReadRandom(database Database) {
 	fmt.Println("ReadRandom test")
+	ctx := context.Background()
 
 	keys := make([][]byte, *flagBatchSize)
 	vals := make([][]byte, *flagBatchSize)
@@ -274,7 +237,7 @@ func ReadRandom(database Database) {
 			vals[j] = make([]byte, *flagValueSize)
 			rng.Bytes(vals[j])
 		}
-		database.BatchPut(keys, vals)
+		database.BatchPut(ctx, keys, vals)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
 			x.Printf("%.2f percent written\n", float64(i)*100.0/float64(*flagNumWrites))
@@ -291,7 +254,7 @@ func ReadRandom(database Database) {
 	timeLog = timeStart
 	for i := 0; i < *flagNumReads; i++ {
 		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumReads))
-		database.Get(key)
+		database.Get(ctx, key)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
 			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumReads),
@@ -301,4 +264,53 @@ func ReadRandom(database Database) {
 		}
 	}
 	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumReads))
+}
+
+func main() {
+	x.Init()
+	x.AssertTrue(len(*flagBench) > 0)
+	x.AssertTrue(*flagValueSize > 0)
+	rng.Init()
+
+	if *flagCpuProfile != "" {
+		f, err := os.Create(*flagCpuProfile)
+		if err != nil {
+			x.Fatalf("Profiler error: %v", err)
+		}
+		fmt.Printf("CPU profiling started")
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		http.ListenAndServe(":8080", nil)
+		wg.Done()
+	}()
+
+	var database Database
+	switch *flagDB {
+	case "badger":
+		database = new(BadgerAdapter)
+	case "rocksdb":
+		database = new(RocksDBAdapter)
+	default:
+		x.Fatalf("Database invalid: %v", *flagDB)
+	}
+	database.Init(*flagDir)
+	defer database.Close()
+
+	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
+	switch *flagBench {
+	case "writerandom":
+		WriteRandom(database)
+	case "batchwriterandom":
+		BatchWriteRandom(database)
+	case "readrandom":
+		ReadRandom(database)
+	default:
+		x.Fatalf("Unknown benchmark: %v", *flagBench)
+	}
+	wg.Wait()
 }
