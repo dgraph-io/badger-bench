@@ -26,13 +26,13 @@ var (
 	flagBench      = flag.String("bench", "", "Run which benchmark?")
 	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
 	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
-	flagBatchSize  = flag.Int("batch_size", 1, "Size of writebatch.")
-	flagNumWrites  = flag.Int("writes", 1000000, "Number of key-value pairs to write.")
-	flagNumReads   = flag.Int("reads", 1000000, "Number of key-value pairs to read.")
+	flagBatchSize  = flag.Int("batch_size", 100, "Size of writebatch.")
+	flagNumWrites  = flag.Int("writes", 50000, "Number of key-value pairs to write.")
+	flagNumReads   = flag.Int("reads", 100000, "Number of key-value pairs to read.")
 	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
 	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
 	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
-	flagDir        = flag.String("dir", "/tmp/badger_bench", "Where data is temporarily stored.")
+	flagDir        = flag.String("dir", "bench-tmp", "Where data is temporarily stored.")
 
 	rdbStore *store.Store
 	rng      randomGenerator
