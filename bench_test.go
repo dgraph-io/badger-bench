@@ -11,11 +11,11 @@ func BenchmarkWriteBatchRandom(b *testing.B) {
 	ctx := context.Background()
 
 	bd := new(BadgerAdapter)
-	bd.Init()
+	bd.Init("bench-tmp")
 	defer bd.Close()
 
 	rd := new(RocksDBAdapter)
-	rd.Init()
+	rd.Init("bench-tmp")
 	defer rd.Close()
 
 	batchSize := 1000

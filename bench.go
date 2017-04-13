@@ -84,7 +84,7 @@ func report(d time.Duration, n int) string {
 }
 
 type Database interface {
-	Init()
+	Init(basedir string)
 	Close()
 	Put(ctx context.Context, key, val []byte)
 	BatchPut(ctx context.Context, key, val [][]byte)
@@ -96,9 +96,9 @@ type RocksDBAdapter struct {
 	dir string
 }
 
-func (s *RocksDBAdapter) Init() {
+func (s *RocksDBAdapter) Init(basedir string) {
 	var err error
-	s.dir, err = ioutil.TempDir(*flagDir, "storetest_")
+	s.dir, err = ioutil.TempDir(basedir, "storetest_")
 	x.Check(err)
 	s.rdb, err = store.NewSyncStore(s.dir)
 	x.Check(err)
@@ -131,10 +131,12 @@ type BadgerAdapter struct {
 	dir string
 }
 
-func (s *BadgerAdapter) Init() {
+func (s *BadgerAdapter) Init(basedir string) {
 	opt := badger.DefaultOptions
 	opt.Verbose = *flagVerbose
-	opt.Dir = *flagDir
+	dir, err := ioutil.TempDir(basedir, "badger")
+	x.Check(err)
+	opt.Dir = dir
 
 	fmt.Printf("Dir: %s\n", *flagDir)
 	s.db = badger.NewDB(&opt)
@@ -296,7 +298,7 @@ func main() {
 	default:
 		x.Fatalf("Database invalid: %v", *flagDB)
 	}
-	database.Init()
+	database.Init(*flagDir)
 	defer database.Close()
 
 	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
