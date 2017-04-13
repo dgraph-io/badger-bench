@@ -3,11 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"testing"
 )
 
 func BenchmarkWriteBatchRandom(b *testing.B) {
-	rng.Init()
 	ctx := context.Background()
 
 	bd := new(BadgerAdapter)
@@ -36,9 +36,9 @@ func BenchmarkWriteBatchRandom(b *testing.B) {
 					vals := make([][]byte, batchSize)
 					for pb.Next() {
 						for j := 0; j < batchSize; j++ {
-							keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()))
+							keys[j] = []byte(fmt.Sprintf("%016d", rand.Int()))
 							vals[j] = make([]byte, vsz)
-							rng.Bytes(vals[j])
+							rand.Read(vals[j])
 						}
 						db.BatchPut(ctx, keys, vals)
 					}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -29,53 +28,12 @@ var (
 	flagBatchSize  = flag.Int("batch_size", 100, "Size of writebatch.")
 	flagNumWrites  = flag.Int("writes", 50000, "Number of key-value pairs to write.")
 	flagNumReads   = flag.Int("reads", 100000, "Number of key-value pairs to read.")
-	flagRandSize   = flag.Int("rand_size", 1000000, "Size of rng buffer.")
 	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
 	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
 	flagDir        = flag.String("dir", "bench-tmp", "Where data is temporarily stored.")
 
 	rdbStore *store.Store
-	rng      randomGenerator
 )
-
-type randomGenerator struct {
-	data []byte
-	idx  int
-}
-
-func (s *randomGenerator) Init() {
-	if *flagRandSize <= 0 {
-		// Will not precompute the randomness.
-		return
-	}
-	s.data = make([]byte, *flagRandSize)
-	n, err := rand.Read(s.data)
-	x.Check(err)
-	x.AssertTrue(n == *flagRandSize)
-	s.idx = 0
-}
-
-// Bytes generates len(out) random bytes and writes to out.
-func (s *randomGenerator) Bytes(out []byte) {
-	if *flagRandSize == 0 {
-		n, err := rand.Read(out)
-		x.AssertTrue(n == len(out))
-		x.Check(err)
-		return
-	}
-	size := len(out)
-	if s.idx+size > len(s.data) {
-		s.idx = 0
-	}
-	x.AssertTrue(size == copy(out, s.data[s.idx:s.idx+size]))
-	s.idx += size
-}
-
-func (s *randomGenerator) Int() int {
-	var buf [4]byte
-	s.Bytes(buf[:])
-	return int(binary.LittleEndian.Uint32(buf[:]))
-}
 
 func report(d time.Duration, n int) string {
 	secs := d.Seconds()
@@ -133,7 +91,7 @@ type BadgerAdapter struct {
 
 func (s *BadgerAdapter) Init(basedir string) {
 	opt := badger.DefaultOptions
-	opt.Verbose = *flagVerbose
+	opt.Verbose = true
 	dir, err := ioutil.TempDir(basedir, "badger")
 	x.Check(err)
 	opt.Dir = dir
@@ -175,9 +133,9 @@ func WriteRandom(database Database) {
 	// If you use b.N, you might add too few samples and be working only in memory.
 	// We need to fix a large number of pairs. This is what LevelDB benchmark does as well.
 	for i := 0; i < *flagNumWrites; i++ {
-		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
+		key := []byte(fmt.Sprintf("%016d", rand.Int()%*flagNumWrites))
 		val := make([]byte, *flagValueSize)
-		rng.Bytes(val)
+		rand.Read(val)
 		database.Put(ctx, key, val)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
@@ -201,9 +159,9 @@ func BatchWriteRandom(database Database) {
 
 	for i := 0; i < *flagNumWrites; i++ {
 		for j := 0; j < *flagBatchSize; j++ {
-			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
+			keys[j] = []byte(fmt.Sprintf("%016d", rand.Int()%*flagNumWrites))
 			vals[j] = make([]byte, *flagValueSize)
-			rng.Bytes(vals[j])
+			rand.Read(vals[j])
 		}
 		tr := trace.New("BatchWrite", "BatchPut")
 		ctx := trace.NewContext(context.Background(), tr)
@@ -233,9 +191,9 @@ func ReadRandom(database Database) {
 	x.Printf("Preparing database")
 	for i := 0; i < *flagNumWrites; i++ {
 		for j := 0; j < *flagBatchSize; j++ {
-			keys[j] = []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumWrites))
+			keys[j] = []byte(fmt.Sprintf("%016d", rand.Int()%*flagNumWrites))
 			vals[j] = make([]byte, *flagValueSize)
-			rng.Bytes(vals[j])
+			rand.Read(vals[j])
 		}
 		database.BatchPut(ctx, keys, vals)
 		timeElapsed := time.Since(timeLog)
@@ -253,7 +211,7 @@ func ReadRandom(database Database) {
 	timeStart := time.Now()
 	timeLog = timeStart
 	for i := 0; i < *flagNumReads; i++ {
-		key := []byte(fmt.Sprintf("%016d", rng.Int()%*flagNumReads))
+		key := []byte(fmt.Sprintf("%016d", rand.Int()%*flagNumReads))
 		database.Get(ctx, key)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
@@ -270,7 +228,6 @@ func main() {
 	x.Init()
 	x.AssertTrue(len(*flagBench) > 0)
 	x.AssertTrue(*flagValueSize > 0)
-	rng.Init()
 
 	if *flagCpuProfile != "" {
 		f, err := os.Create(*flagCpuProfile)
