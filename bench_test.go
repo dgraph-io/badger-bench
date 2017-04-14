@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"net/http"
+	"os"
 	"testing"
 )
 
@@ -11,11 +13,11 @@ func BenchmarkWriteBatchRandom(b *testing.B) {
 	ctx := context.Background()
 
 	bd := new(BadgerAdapter)
-	bd.Init("bench-tmp")
+	bd.Init("/tmp/bench-tmp")
 	defer bd.Close()
 
 	rd := new(RocksDBAdapter)
-	rd.Init("bench-tmp")
+	rd.Init("/tmp/bench-tmp")
 	defer rd.Close()
 
 	batchSize := 1000
@@ -46,4 +48,10 @@ func BenchmarkWriteBatchRandom(b *testing.B) {
 			})
 		}
 	}
+}
+
+func TestMain(m *testing.M) {
+	// call flag.Parse() here if TestMain uses flags
+	go http.ListenAndServe(":8080", nil)
+	os.Exit(m.Run())
 }

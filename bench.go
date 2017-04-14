@@ -13,8 +13,11 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/trace"
+
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/value"
+	"github.com/pkg/errors"
 
 	"github.com/dgraph-io/dgraph/store"
 )
@@ -35,13 +38,13 @@ var (
 
 func Check(err error) {
 	if err != nil {
-		log.Fatalf("%+v", err)
+		log.Fatalf("%+v", errors.Wrap(err, "Check error"))
 	}
 }
 
 func AssertTrue(b bool) {
 	if !b {
-		log.Fatal("Assert failed")
+		log.Fatalf("%+v", errors.Errorf("Assert failed"))
 	}
 }
 
@@ -173,9 +176,8 @@ func BatchWriteRandom(database Database) {
 			vals[j] = make([]byte, *flagValueSize)
 			rand.Read(vals[j])
 		}
-		// tr := trace.New("BatchWrite", "BatchPut")
-		// ctx := trace.NewContext(context.Background(), tr)
-		ctx := context.Background()
+		tr := trace.New("BatchWrite", "BatchPut")
+		ctx := trace.NewContext(context.Background(), tr)
 		database.BatchPut(ctx, keys, vals)
 		// tr.Finish()
 		timeElapsed := time.Since(timeLog)
@@ -236,8 +238,8 @@ func ReadRandom(database Database) {
 }
 
 func main() {
+	flag.Parse()
 	AssertTrue(len(*flagBench) > 0)
-	AssertTrue(*flagValueSize > 0)
 
 	if *flagCpuProfile != "" {
 		f, err := os.Create(*flagCpuProfile)
