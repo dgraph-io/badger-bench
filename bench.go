@@ -13,8 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/net/trace"
-
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/value"
 
@@ -175,10 +173,11 @@ func BatchWriteRandom(database Database) {
 			vals[j] = make([]byte, *flagValueSize)
 			rand.Read(vals[j])
 		}
-		tr := trace.New("BatchWrite", "BatchPut")
-		ctx := trace.NewContext(context.Background(), tr)
+		// tr := trace.New("BatchWrite", "BatchPut")
+		// ctx := trace.NewContext(context.Background(), tr)
+		ctx := context.Background()
 		database.BatchPut(ctx, keys, vals)
-		tr.Finish()
+		// tr.Finish()
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
 			log.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
@@ -237,7 +236,6 @@ func ReadRandom(database Database) {
 }
 
 func main() {
-	// x.Init()
 	AssertTrue(len(*flagBench) > 0)
 	AssertTrue(*flagValueSize > 0)
 
