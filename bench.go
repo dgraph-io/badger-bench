@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -18,7 +19,6 @@ import (
 	"github.com/dgraph-io/badger/value"
 
 	"github.com/dgraph-io/dgraph/store"
-	"github.com/dgraph-io/dgraph/x"
 )
 
 var (
@@ -34,6 +34,18 @@ var (
 
 	rdbStore *store.Store
 )
+
+func Check(err error) {
+	if err != nil {
+		log.Fatalf("%+v", err)
+	}
+}
+
+func AssertTrue(b bool) {
+	if !b {
+		log.Fatal("Assert failed")
+	}
+}
 
 func report(d time.Duration, n int) string {
 	secs := d.Seconds()
@@ -57,9 +69,9 @@ type RocksDBAdapter struct {
 func (s *RocksDBAdapter) Init(basedir string) {
 	var err error
 	s.dir, err = ioutil.TempDir(basedir, "storetest_")
-	x.Check(err)
+	Check(err)
 	s.rdb, err = store.NewSyncStore(s.dir)
-	x.Check(err)
+	Check(err)
 }
 
 func (s *RocksDBAdapter) Close() {
@@ -72,16 +84,16 @@ func (s *RocksDBAdapter) Put(ctx context.Context, key, val []byte) {
 
 func (s *RocksDBAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
 	wb := s.rdb.NewWriteBatch()
-	x.AssertTrue(len(key) == len(val))
+	AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
 		wb.Put(key[i], val[i])
 	}
-	x.Check(s.rdb.WriteBatch(wb))
+	Check(s.rdb.WriteBatch(wb))
 }
 
 func (s *RocksDBAdapter) Get(ctx context.Context, key []byte) {
 	_, err := s.rdb.Get(key)
-	x.Check(err)
+	Check(err)
 }
 
 type BadgerAdapter struct {
@@ -93,7 +105,7 @@ func (s *BadgerAdapter) Init(basedir string) {
 	opt := badger.DefaultOptions
 	opt.Verbose = true
 	dir, err := ioutil.TempDir(basedir, "badger")
-	x.Check(err)
+	Check(err)
 	opt.Dir = dir
 
 	fmt.Printf("Dir: %s\n", *flagDir)
@@ -109,14 +121,14 @@ func (s *BadgerAdapter) Put(ctx context.Context, key, val []byte) {
 
 func (s *BadgerAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
 	var entries []value.Entry
-	x.AssertTrue(len(key) == len(val))
+	AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
 		entries = append(entries, value.Entry{
 			Key:   key[i],
 			Value: val[i],
 		})
 	}
-	x.Check(s.db.Write(ctx, entries))
+	Check(s.db.Write(ctx, entries))
 }
 
 func (s *BadgerAdapter) Get(ctx context.Context, key []byte) {
@@ -139,13 +151,13 @@ func WriteRandom(database Database) {
 		database.Put(ctx, key, val)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
+			log.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, i-timeLogI))
 			timeLog = time.Now()
 			timeLogI = i
 		}
 	}
-	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites))
+	log.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites))
 }
 
 // With batching.
@@ -169,13 +181,13 @@ func BatchWriteRandom(database Database) {
 		tr.Finish()
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
+			log.Printf("%.2f%% : %s\n", float64(i)*100.0/float64(*flagNumWrites),
 				report(timeElapsed, (i-timeLogI)*(*flagBatchSize)))
 			timeLog = time.Now()
 			timeLogI = i
 		}
 	}
-	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites*(*flagBatchSize)))
+	log.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumWrites*(*flagBatchSize)))
 }
 
 // No batching.
@@ -188,7 +200,7 @@ func ReadRandom(database Database) {
 	// Write some key-value pairs first.
 	// TODO: Allow user to just specify a database to open.
 	timeLog := time.Now()
-	x.Printf("Preparing database")
+	log.Printf("Preparing database")
 	for i := 0; i < *flagNumWrites; i++ {
 		for j := 0; j < *flagBatchSize; j++ {
 			keys[j] = []byte(fmt.Sprintf("%016d", rand.Int()%*flagNumWrites))
@@ -198,15 +210,15 @@ func ReadRandom(database Database) {
 		database.BatchPut(ctx, keys, vals)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent written\n", float64(i)*100.0/float64(*flagNumWrites))
+			log.Printf("%.2f percent written\n", float64(i)*100.0/float64(*flagNumWrites))
 			timeLog = time.Now()
 		}
 	}
 
-	x.Printf("Slight pause\n")
+	log.Printf("Slight pause\n")
 	time.Sleep(time.Second)
 
-	x.Printf("Starting reads")
+	log.Printf("Starting reads")
 	timeLogI := 0
 	timeStart := time.Now()
 	timeLog = timeStart
@@ -215,24 +227,24 @@ func ReadRandom(database Database) {
 		database.Get(ctx, key)
 		timeElapsed := time.Since(timeLog)
 		if timeElapsed > 5*time.Second {
-			x.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumReads),
+			log.Printf("%.2f percent: %s\n", float64(i)*100.0/float64(*flagNumReads),
 				report(timeElapsed, (i-timeLogI)))
 			timeLog = time.Now()
 			timeLogI = i
 		}
 	}
-	x.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumReads))
+	log.Printf("Overall: %s\n", report(time.Since(timeStart), *flagNumReads))
 }
 
 func main() {
-	x.Init()
-	x.AssertTrue(len(*flagBench) > 0)
-	x.AssertTrue(*flagValueSize > 0)
+	// x.Init()
+	AssertTrue(len(*flagBench) > 0)
+	AssertTrue(*flagValueSize > 0)
 
 	if *flagCpuProfile != "" {
 		f, err := os.Create(*flagCpuProfile)
 		if err != nil {
-			x.Fatalf("Profiler error: %v", err)
+			log.Fatalf("Profiler error: %v", err)
 		}
 		fmt.Printf("CPU profiling started")
 		pprof.StartCPUProfile(f)
@@ -253,12 +265,12 @@ func main() {
 	case "rocksdb":
 		database = new(RocksDBAdapter)
 	default:
-		x.Fatalf("Database invalid: %v", *flagDB)
+		log.Fatalf("Database invalid: %v", *flagDB)
 	}
 	database.Init(*flagDir)
 	defer database.Close()
 
-	x.AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
+	AssertTrue(*flagDB == "rocksdb" || *flagDB == "badger")
 	switch *flagBench {
 	case "writerandom":
 		WriteRandom(database)
@@ -267,7 +279,7 @@ func main() {
 	case "readrandom":
 		ReadRandom(database)
 	default:
-		x.Fatalf("Unknown benchmark: %v", *flagBench)
+		log.Fatalf("Unknown benchmark: %v", *flagBench)
 	}
 	wg.Wait()
 }
