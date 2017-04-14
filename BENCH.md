@@ -24,3 +24,22 @@ BenchmarkWriteBatchRandom/db=rocksdb_valuesize=100000-4     	      10	2291584086
 PASS
 ok  	github.com/dgraph-io/badger-bench	181.937s
 
+# Iteration using Badger vs RocksDB
+
+BenchmarkIterate/badger-writes=10000000-4         	       3	2869533549 ns/op
+--- BENCH: BenchmarkIterate/badger-writes=10000000-4
+	bench_test.go:80: [0] Counted 9516069 keys
+	bench_test.go:80: [0] Counted 9516069 keys
+	bench_test.go:80: [1] Counted 9516069 keys
+	bench_test.go:80: [0] Counted 9516069 keys
+	bench_test.go:80: [1] Counted 9516069 keys
+	bench_test.go:80: [2] Counted 9516069 keys
+BenchmarkIterate/rocksdb-writes=10000000-4        	       3	2776771610 ns/op
+--- BENCH: BenchmarkIterate/rocksdb-writes=10000000-4
+	bench_test.go:91: [0] Counted 9516068 keys
+	bench_test.go:91: [0] Counted 9516068 keys
+	bench_test.go:91: [1] Counted 9516068 keys
+	bench_test.go:91: [0] Counted 9516068 keys
+	bench_test.go:91: [1] Counted 9516068 keys
+	bench_test.go:91: [2] Counted 9516068 keys
+

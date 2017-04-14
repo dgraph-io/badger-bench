@@ -14,10 +14,12 @@ import (
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/dgraph/store"
 )
 
-func writeBatch(bdb *badger.DB, max int) int {
-	entries := make([]value.Entry, 0, 100)
+func writeBatch(bdb *badger.DB, rdb *store.Store, max int) int {
+	wb := rdb.NewWriteBatch()
+	entries := make([]value.Entry, 0, 10000)
 	for i := 0; i < 10000; i++ {
 		v := make([]byte, 10)
 		rand.Read(v)
@@ -26,8 +28,10 @@ func writeBatch(bdb *badger.DB, max int) int {
 			Value: v,
 		}
 		entries = append(entries, e)
+		wb.Put(e.Key, e.Value)
 	}
 	y.Check(bdb.Write(context.Background(), entries))
+	y.Check(rdb.WriteBatch(wb))
 	return len(entries)
 }
 
@@ -39,16 +43,24 @@ func BenchmarkIterate(b *testing.B) {
 	opt.Dir = dir
 	bdb := badger.NewDB(&opt)
 
+	dir, err = ioutil.TempDir("tmp", "rocks")
+	Check(err)
+	rdb, err := store.NewSyncStore(dir)
+	Check(err)
+
 	nw := 10000000
 	for written := 0; written < nw; {
-		written += writeBatch(bdb, nw*10)
+		written += writeBatch(bdb, rdb, nw*10)
 	}
 	bdb.Close()
+	rdb.Close()
 	b.Log("Sleeping for 10 seconds to allow compaction.")
 	time.Sleep(time.Second)
 
 	opt.DoNotCompact = true
 	bdb = badger.NewDB(&opt)
+	rdb, err = store.NewSyncStore(dir)
+	Check(err)
 	b.ResetTimer()
 
 	f, err := os.Create("cpu.prof")
@@ -58,7 +70,7 @@ func BenchmarkIterate(b *testing.B) {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	b.Run(fmt.Sprintf("writes=%d", nw), func(b *testing.B) {
+	b.Run(fmt.Sprintf("badger-writes=%d", nw), func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			itr := bdb.NewIterator(context.Background())
 			var count int
@@ -68,7 +80,17 @@ func BenchmarkIterate(b *testing.B) {
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
 	})
-	// bdb.Close()
+
+	b.Run(fmt.Sprintf("rocksdb-writes=%d", nw), func(b *testing.B) {
+		for j := 0; j < b.N; j++ {
+			itr := rdb.NewIterator()
+			var count int
+			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+				count++
+			}
+			b.Logf("[%d] Counted %d keys\n", j, count)
+		}
+	})
 }
 
 func BenchmarkWriteBatchRandom(b *testing.B) {
