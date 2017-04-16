@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"os"
@@ -35,32 +34,68 @@ func writeBatch(bdb *badger.KV, rdb *store.Store, max int) int {
 	return len(entries)
 }
 
-func BenchmarkIterate(b *testing.B) {
+const nw int = 10000000
+
+func prepareStores() (*badger.KV, *store.Store) {
 	opt := badger.DefaultOptions
 	opt.Verbose = true
-	dir, err := ioutil.TempDir("tmp", "badger")
-	Check(err)
-	opt.Dir = dir
-	bdb := badger.NewKV(&opt)
+	opt.Dir = "tmp/badger"
+	rdir := "tmp/rocks"
 
-	dir, err = ioutil.TempDir("tmp", "rocks")
-	Check(err)
-	rdb, err := store.NewSyncStore(dir)
-	Check(err)
+	if _, err := os.Stat("tmp/generated"); os.IsNotExist(err) {
+		os.MkdirAll("tmp/badger", 0777)
+		os.MkdirAll("tmp/rocks", 0777)
 
-	nw := 10000000 // 10M writes, each of size 128 bytes.
-	for written := 0; written < nw; {
-		written += writeBatch(bdb, rdb, nw*10)
+		bdb := badger.NewKV(&opt)
+
+		rdb, err := store.NewSyncStore(rdir)
+		Check(err)
+
+		for written := 0; written < nw; {
+			written += writeBatch(bdb, rdb, nw*10)
+		}
+		bdb.Close()
+		rdb.Close()
+		time.Sleep(10 * time.Second)
+		_, err = os.Create("tmp/generated")
+		Check(err)
+	} else {
+		fmt.Println("Stores already exist in ./tmp. Using them.")
 	}
-	bdb.Close()
-	rdb.Close()
-	b.Log("Sleeping for 10 seconds to allow compaction.")
-	time.Sleep(time.Second)
 
 	opt.DoNotCompact = true
-	bdb = badger.NewKV(&opt)
-	rdb, err = store.NewSyncStore(dir)
+	bdb := badger.NewKV(&opt)
+	rdb, err := store.NewSyncStore(rdir)
 	Check(err)
+	return bdb, rdb
+}
+
+func BenchmarkReadRandom(b *testing.B) {
+	ctx := context.Background()
+	bdb, rdb := prepareStores()
+	b.ResetTimer()
+
+	b.Run(fmt.Sprintf("badger-random-reads=%d", nw), func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				key := []byte(fmt.Sprintf("%016d", rand.Int()))
+				bdb.Get(ctx, key)
+			}
+		})
+	})
+
+	b.Run(fmt.Sprintf("rocksdb-random-reads=%d", nw), func(b *testing.B) {
+		b.RunParallel(func(pb *testing.PB) {
+			for pb.Next() {
+				key := []byte(fmt.Sprintf("%016d", rand.Int()))
+				rdb.Get(key)
+			}
+		})
+	})
+}
+
+func BenchmarkIterate(b *testing.B) {
+	bdb, rdb := prepareStores()
 	b.ResetTimer()
 
 	f, err := os.Create("cpu.prof")
