@@ -21,7 +21,7 @@ func writeBatch(bdb *badger.KV, rdb *store.Store, max int) int {
 	wb := rdb.NewWriteBatch()
 	entries := make([]value.Entry, 0, 10000)
 	for i := 0; i < 10000; i++ {
-		v := make([]byte, 10)
+		v := make([]byte, 128)
 		rand.Read(v)
 		e := value.Entry{
 			Key:   []byte(fmt.Sprintf("%016d", rand.Int()%max)),
@@ -48,7 +48,7 @@ func BenchmarkIterate(b *testing.B) {
 	rdb, err := store.NewSyncStore(dir)
 	Check(err)
 
-	nw := 10000000
+	nw := 10000000 // 10M writes, each of size 128 bytes.
 	for written := 0; written < nw; {
 		written += writeBatch(bdb, rdb, nw*10)
 	}
@@ -110,8 +110,8 @@ func BenchmarkIterate(b *testing.B) {
 				// we allocate memory for both key and value.
 				key := make([]byte, itr.Key().Size())
 				copy(key, itr.Key().Data())
-				val := make([]byte, itr.Value().Size())
-				copy(val, itr.Value().Data())
+				// val := make([]byte, itr.Value().Size())
+				// copy(val, itr.Value().Data())
 				count++
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)

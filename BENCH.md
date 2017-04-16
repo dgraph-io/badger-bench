@@ -57,3 +57,15 @@ BenchmarkIterate/rocksdb-writes=10000000-4                 	       1	10510640492
 	bench_test.go:117: [0] Counted 9516068 keys
 --- BENCH: BenchmarkIterate
 	bench_test.go:57: Sleeping for 10 seconds to allow compaction.
+
+# With 128 byte values, and with no value copy in RocksDB.
+BenchmarkIterate/badger-onlykeys-writes=10000000-4         	       1	17084400581 ns/op
+--- BENCH: BenchmarkIterate/badger-onlykeys-writes=10000000-4
+	bench_test.go:84: [0] Counted 9516477 keys
+BenchmarkIterate/badger-withvals-writes=10000000-4         	       1	36570013381 ns/op
+--- BENCH: BenchmarkIterate/badger-withvals-writes=10000000-4
+	bench_test.go:100: [0] Counted 9516477 keys
+BenchmarkIterate/rocksdb-writes=10000000-4                 	       1	37401531655 ns/op
+--- BENCH: BenchmarkIterate/rocksdb-writes=10000000-4
+	bench_test.go:117: [0] Counted 9516476 keys
+--- BENCH: BenchmarkIterate
