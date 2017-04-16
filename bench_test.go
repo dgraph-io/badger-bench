@@ -17,7 +17,7 @@ import (
 	"github.com/dgraph-io/dgraph/store"
 )
 
-func writeBatch(bdb *badger.DB, rdb *store.Store, max int) int {
+func writeBatch(bdb *badger.KV, rdb *store.Store, max int) int {
 	wb := rdb.NewWriteBatch()
 	entries := make([]value.Entry, 0, 10000)
 	for i := 0; i < 10000; i++ {
@@ -41,7 +41,7 @@ func BenchmarkIterate(b *testing.B) {
 	dir, err := ioutil.TempDir("tmp", "badger")
 	Check(err)
 	opt.Dir = dir
-	bdb := badger.NewDB(&opt)
+	bdb := badger.NewKV(&opt)
 
 	dir, err = ioutil.TempDir("tmp", "rocks")
 	Check(err)
@@ -58,7 +58,7 @@ func BenchmarkIterate(b *testing.B) {
 	time.Sleep(time.Second)
 
 	opt.DoNotCompact = true
-	bdb = badger.NewDB(&opt)
+	bdb = badger.NewKV(&opt)
 	rdb, err = store.NewSyncStore(dir)
 	Check(err)
 	b.ResetTimer()
@@ -70,11 +70,31 @@ func BenchmarkIterate(b *testing.B) {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	b.Run(fmt.Sprintf("badger-writes=%d", nw), func(b *testing.B) {
+	b.Run(fmt.Sprintf("badger-onlykeys-writes=%d", nw), func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
-			itr := bdb.NewIterator(context.Background())
 			var count int
-			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+			itr := bdb.NewIterator(context.Background(), 100, 0)
+			itr.SeekToFirst()
+			for item := range itr.Ch() {
+				if item.Key() == nil {
+					break
+				}
+				count++
+			}
+			b.Logf("[%d] Counted %d keys\n", j, count)
+		}
+	})
+
+	b.Run(fmt.Sprintf("badger-withvals-writes=%d", nw), func(b *testing.B) {
+		for j := 0; j < b.N; j++ {
+			var count int
+			itr := bdb.NewIterator(context.Background(), 100, 100)
+			itr.SeekToFirst()
+			for item := range itr.Ch() {
+				if item.Key() == nil {
+					break
+				}
+				item.Value()
 				count++
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
@@ -86,6 +106,12 @@ func BenchmarkIterate(b *testing.B) {
 			itr := rdb.NewIterator()
 			var count int
 			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+				// To make it equivalent of what Badger iterator does,
+				// we allocate memory for both key and value.
+				key := make([]byte, itr.Key().Size())
+				copy(key, itr.Key().Data())
+				val := make([]byte, itr.Value().Size())
+				copy(val, itr.Value().Data())
 				count++
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)

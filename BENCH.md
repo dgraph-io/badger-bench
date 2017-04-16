@@ -43,3 +43,17 @@ BenchmarkIterate/rocksdb-writes=10000000-4        	       3	2776771610 ns/op
 	bench_test.go:91: [1] Counted 9516068 keys
 	bench_test.go:91: [2] Counted 9516068 keys
 
+# Iteration with keys and values allocated memory. Things are 3.8x slower.
+# Retrieving values is 2x slower.
+
+BenchmarkIterate/badger-onlykeys-writes=10000000-4         	       1	11170780113 ns/op
+--- BENCH: BenchmarkIterate/badger-onlykeys-writes=10000000-4
+	bench_test.go:84: [0] Counted 9516069 keys
+BenchmarkIterate/badger-withvals-writes=10000000-4         	       1	21143047048 ns/op
+--- BENCH: BenchmarkIterate/badger-withvals-writes=10000000-4
+	bench_test.go:100: [0] Counted 9516069 keys
+BenchmarkIterate/rocksdb-writes=10000000-4                 	       1	10510640492 ns/op
+--- BENCH: BenchmarkIterate/rocksdb-writes=10000000-4
+	bench_test.go:117: [0] Counted 9516068 keys
+--- BENCH: BenchmarkIterate
+	bench_test.go:57: Sleeping for 10 seconds to allow compaction.

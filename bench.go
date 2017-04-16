@@ -98,7 +98,7 @@ func (s *RocksDBAdapter) Get(ctx context.Context, key []byte) {
 }
 
 type BadgerAdapter struct {
-	db  *badger.DB
+	db  *badger.KV
 	dir string
 }
 
@@ -110,7 +110,7 @@ func (s *BadgerAdapter) Init(basedir string) {
 	opt.Dir = dir
 
 	fmt.Printf("Dir: %s\n", *flagDir)
-	s.db = badger.NewDB(&opt)
+	s.db = badger.NewKV(&opt)
 }
 
 func (s *BadgerAdapter) Close() {
