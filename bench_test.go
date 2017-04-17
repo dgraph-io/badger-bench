@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"runtime/pprof"
+	"sync"
 	"testing"
 	"time"
 
@@ -16,25 +17,42 @@ import (
 	"github.com/dgraph-io/dgraph/store"
 )
 
-func writeBatch(bdb *badger.KV, rdb *store.Store, max int) int {
+const mil int = 1000000
+const nw int = 1000 * mil
+
+func newKey() (key []byte, pow int) {
+	pow = 4 + rand.Intn(21) // 2^4 = 16B -> 2^24 = 16 MB
+	k := rand.Int() % nw
+	key = []byte(fmt.Sprintf("v=%03d-k=%016d", pow, k))
+	return key, pow
+}
+
+func newValue(pow int) []byte {
+	sz := 2 ^ pow
+	v := make([]byte, sz)
+	rand.Read(v)
+	return v
+}
+
+var ctx = context.Background()
+
+func writeBatch(bdb *badger.KV, rdb *store.Store) int {
 	wb := rdb.NewWriteBatch()
 	entries := make([]value.Entry, 0, 10000)
 	for i := 0; i < 10000; i++ {
-		v := make([]byte, 128)
-		rand.Read(v)
+		key, pow := newKey()
+		v := newValue(pow)
 		e := value.Entry{
-			Key:   []byte(fmt.Sprintf("%016d", rand.Int()%max)),
+			Key:   key,
 			Value: v,
 		}
 		entries = append(entries, e)
 		wb.Put(e.Key, e.Value)
 	}
-	y.Check(bdb.Write(context.Background(), entries))
+	y.Check(bdb.Write(ctx, entries))
 	y.Check(rdb.WriteBatch(wb))
 	return len(entries)
 }
-
-const nw int = 10000000
 
 func prepareStores() (*badger.KV, *store.Store) {
 	opt := badger.DefaultOptions
@@ -47,13 +65,24 @@ func prepareStores() (*badger.KV, *store.Store) {
 		os.MkdirAll("tmp/rocks", 0777)
 
 		bdb := badger.NewKV(&opt)
-
 		rdb, err := store.NewSyncStore(rdir)
 		Check(err)
 
-		for written := 0; written < nw; {
-			written += writeBatch(bdb, rdb, nw*10)
+		N := 10
+		var wg sync.WaitGroup
+		for i := 0; i < N; i++ {
+			wg.Add(1)
+			go func(proc int) {
+				for written := 0; written < nw/N; {
+					written += writeBatch(bdb, rdb)
+					if written%mil == 0 {
+						fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
+					}
+				}
+				wg.Done()
+			}(i)
 		}
+		wg.Wait()
 		bdb.Close()
 		rdb.Close()
 		time.Sleep(10 * time.Second)
@@ -68,6 +97,10 @@ func prepareStores() (*badger.KV, *store.Store) {
 	rdb, err := store.NewSyncStore(rdir)
 	Check(err)
 	return bdb, rdb
+}
+
+func BenchmarkPrepareStores(b *testing.B) {
+	prepareStores()
 }
 
 func BenchmarkReadRandom(b *testing.B) {
