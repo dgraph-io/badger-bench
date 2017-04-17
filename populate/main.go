@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -9,13 +10,18 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 )
 
 const mil int = 1000000
-const nw int = 1000 * mil
+
+var (
+	which   = flag.String("kv", "badger", "Which KV store to use.")
+	numKeys = flag.Int("keys_mil", 10, "How many million keys to write.")
+)
 
 func newKey() (key []byte, pow int) {
 	pow = 10 // 1KB
@@ -23,7 +29,7 @@ func newKey() (key []byte, pow int) {
 		pow = 14 // 16KB
 	}
 	// pow = 4 + rand.Intn(21) // 2^4 = 16B -> 2^24 = 16 MB
-	k := rand.Int() % nw
+	k := rand.Int() % (*numKeys * mil)
 	key = []byte(fmt.Sprintf("v=%02d-k=%016d", pow, k))
 	return key, pow
 }
@@ -50,27 +56,40 @@ func writeBatch(bdb *badger.KV, rdb *store.Store) int {
 		entries = append(entries, e)
 		wb.Put(e.Key, e.Value)
 	}
-	y.Check(bdb.Write(ctx, entries))
-	y.Check(rdb.WriteBatch(wb))
+	if bdb != nil {
+		y.Check(bdb.Write(ctx, entries))
+	}
+	if rdb != nil {
+		y.Check(rdb.WriteBatch(wb))
+	}
 	return len(entries)
 }
 
 func main() {
+	flag.Parse()
+
+	nw := *numKeys * mil
 	opt := badger.DefaultOptions
+	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
 	rdir := "tmp/rocks"
 
-	if _, err := os.Stat("tmp/generated"); os.IsExist(err) {
-		fmt.Println("tmp/generated already exists. Not populating.")
+	var err error
+	var bdb *badger.KV
+	var rdb *store.Store
+
+	if *which == "badger" {
+		os.RemoveAll("tmp/badger")
+		os.MkdirAll("tmp/badger", 0777)
+		bdb = badger.NewKV(&opt)
 	}
-
-	os.MkdirAll("tmp/badger", 0777)
-	os.MkdirAll("tmp/rocks", 0777)
-
-	bdb := badger.NewKV(&opt)
-	rdb, err := store.NewSyncStore(rdir)
-	y.Check(err)
+	if *which == "rocksdb" {
+		os.RemoveAll("tmp/rocks")
+		os.MkdirAll("tmp/rocks", 0777)
+		rdb, err = store.NewSyncStore(rdir)
+		y.Check(err)
+	}
 
 	N := 10
 	var wg sync.WaitGroup
@@ -87,9 +106,11 @@ func main() {
 		}(i)
 	}
 	wg.Wait()
-	bdb.Close()
-	rdb.Close()
+	if bdb != nil {
+		bdb.Close()
+	}
+	if rdb != nil {
+		rdb.Close()
+	}
 	time.Sleep(10 * time.Second)
-	_, err = os.Create("tmp/generated")
-	y.Check(err)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -10,22 +11,16 @@ import (
 	"testing"
 
 	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 )
 
 var ctx = context.Background()
 
-// If you modify this, you should also modify the populate script.
-const mil int = 1000000
-const nw int = 1000 * mil
-
 func getStores() (*badger.KV, *store.Store) {
-	if _, err := os.Stat("tmp/generated"); os.IsNotExist(err) {
-		y.Fatalf("tmp/generated file does not exist. That means stores are not populated.")
-	}
-
 	opt := badger.DefaultOptions
+	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
 	opt.DoNotCompact = true
@@ -37,25 +32,47 @@ func getStores() (*badger.KV, *store.Store) {
 	return bdb, rdb
 }
 
+var numKeys = flag.Int("keys_mil", 10, "How many million keys to write.")
+
+const mil int = 1000000
+
+func newKey() (key []byte, pow int) {
+	pow = 10 // 1KB
+	if rand.Intn(2) == 1 {
+		pow = 14 // 16KB
+	}
+	k := rand.Int() % (*numKeys * mil)
+	key = []byte(fmt.Sprintf("v=%02d-k=%016d", pow, k))
+	return key, pow
+}
+
 func BenchmarkReadRandom(b *testing.B) {
 	ctx := context.Background()
 
 	bdb, rdb := getStores()
-	b.Run(fmt.Sprintf("badger-random-reads=%d", nw), func(b *testing.B) {
+	b.Run(fmt.Sprintf("badger-random-reads=%d", *numKeys), func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
+			var count int
 			for pb.Next() {
-				key := []byte(fmt.Sprintf("%016d", rand.Int()))
-				bdb.Get(ctx, key)
+				key, _ := newKey()
+				if val := bdb.Get(ctx, key); val != nil {
+					count++
+				}
 			}
+			// b.Logf("%d keys had valid values.", count)
 		})
 	})
 
-	b.Run(fmt.Sprintf("rocksdb-random-reads=%d", nw), func(b *testing.B) {
+	b.Run(fmt.Sprintf("rocksdb-random-reads=%d", *numKeys), func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
+			var count int
 			for pb.Next() {
-				key := []byte(fmt.Sprintf("%016d", rand.Int()))
-				rdb.Get(key)
+				key, _ := newKey()
+				if _, err := rdb.Get(key); err == nil {
+					count++
+				}
 			}
+			// b.Logf("%d keys had valid values.", count)
 		})
 	})
 }
@@ -71,7 +88,7 @@ func BenchmarkIterate(b *testing.B) {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
-	b.Run(fmt.Sprintf("badger-onlykeys-writes=%d", nw), func(b *testing.B) {
+	b.Run("badger-iterate-onlykeys", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			itr := bdb.NewIterator(context.Background(), 100, 0)
@@ -86,7 +103,7 @@ func BenchmarkIterate(b *testing.B) {
 		}
 	})
 
-	b.Run(fmt.Sprintf("badger-withvals-writes=%d", nw), func(b *testing.B) {
+	b.Run("badger-iterate-withvals", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			itr := bdb.NewIterator(context.Background(), 100, 100)
@@ -102,7 +119,7 @@ func BenchmarkIterate(b *testing.B) {
 		}
 	})
 
-	b.Run(fmt.Sprintf("rocksdb-writes=%d", nw), func(b *testing.B) {
+	b.Run("rocksdb-iterate", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			itr := rdb.NewIterator()
 			var count int
@@ -162,6 +179,7 @@ func BenchmarkWriteBatchRandom(b *testing.B) {
 }
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	// call flag.Parse() here if TestMain uses flags
 	go http.ListenAndServe(":8080", nil)
 	os.Exit(m.Run())
