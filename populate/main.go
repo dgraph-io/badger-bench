@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -112,5 +113,10 @@ func main() {
 	if rdb != nil {
 		rdb.Close()
 	}
+	f, err := os.Create("m.prof")
+	y.Check(err)
+	pprof.WriteHeapProfile(f)
+	defer f.Close()
+
 	time.Sleep(10 * time.Second)
 }
