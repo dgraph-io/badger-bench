@@ -7,107 +7,40 @@ import (
 	"net/http"
 	"os"
 	"runtime/pprof"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/dgraph-io/badger/badger"
-	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 )
 
+var ctx = context.Background()
+
+// If you modify this, you should also modify the populate script.
 const mil int = 1000000
 const nw int = 1000 * mil
 
-func newKey() (key []byte, pow int) {
-	pow = 4 + rand.Intn(21) // 2^4 = 16B -> 2^24 = 16 MB
-	k := rand.Int() % nw
-	key = []byte(fmt.Sprintf("v=%03d-k=%016d", pow, k))
-	return key, pow
-}
-
-func newValue(pow int) []byte {
-	sz := 2 ^ pow
-	v := make([]byte, sz)
-	rand.Read(v)
-	return v
-}
-
-var ctx = context.Background()
-
-func writeBatch(bdb *badger.KV, rdb *store.Store) int {
-	wb := rdb.NewWriteBatch()
-	entries := make([]value.Entry, 0, 10000)
-	for i := 0; i < 10000; i++ {
-		key, pow := newKey()
-		v := newValue(pow)
-		e := value.Entry{
-			Key:   key,
-			Value: v,
-		}
-		entries = append(entries, e)
-		wb.Put(e.Key, e.Value)
+func getStores() (*badger.KV, *store.Store) {
+	if _, err := os.Stat("tmp/generated"); os.IsNotExist(err) {
+		y.Fatalf("tmp/generated file does not exist. That means stores are not populated.")
 	}
-	y.Check(bdb.Write(ctx, entries))
-	y.Check(rdb.WriteBatch(wb))
-	return len(entries)
-}
 
-func prepareStores() (*badger.KV, *store.Store) {
 	opt := badger.DefaultOptions
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
-	rdir := "tmp/rocks"
-
-	if _, err := os.Stat("tmp/generated"); os.IsNotExist(err) {
-		os.MkdirAll("tmp/badger", 0777)
-		os.MkdirAll("tmp/rocks", 0777)
-
-		bdb := badger.NewKV(&opt)
-		rdb, err := store.NewSyncStore(rdir)
-		Check(err)
-
-		N := 10
-		var wg sync.WaitGroup
-		for i := 0; i < N; i++ {
-			wg.Add(1)
-			go func(proc int) {
-				for written := 0; written < nw/N; {
-					written += writeBatch(bdb, rdb)
-					if written%mil == 0 {
-						fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
-					}
-				}
-				wg.Done()
-			}(i)
-		}
-		wg.Wait()
-		bdb.Close()
-		rdb.Close()
-		time.Sleep(10 * time.Second)
-		_, err = os.Create("tmp/generated")
-		Check(err)
-	} else {
-		fmt.Println("Stores already exist in ./tmp. Using them.")
-	}
-
 	opt.DoNotCompact = true
+	rdir := "tmp/rocks"
 	bdb := badger.NewKV(&opt)
-	rdb, err := store.NewSyncStore(rdir)
-	Check(err)
-	return bdb, rdb
-}
 
-func BenchmarkPrepareStores(b *testing.B) {
-	prepareStores()
+	rdb, err := store.NewSyncStore(rdir)
+	y.Check(err)
+	return bdb, rdb
 }
 
 func BenchmarkReadRandom(b *testing.B) {
 	ctx := context.Background()
-	bdb, rdb := prepareStores()
-	b.ResetTimer()
 
+	bdb, rdb := getStores()
 	b.Run(fmt.Sprintf("badger-random-reads=%d", nw), func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
@@ -128,7 +61,7 @@ func BenchmarkReadRandom(b *testing.B) {
 }
 
 func BenchmarkIterate(b *testing.B) {
-	bdb, rdb := prepareStores()
+	bdb, rdb := getStores()
 	b.ResetTimer()
 
 	f, err := os.Create("cpu.prof")
