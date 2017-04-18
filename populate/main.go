@@ -17,26 +17,26 @@ import (
 	"github.com/dgraph-io/dgraph/store"
 )
 
-const mil int = 1000000
+const mil float64 = 1000000
 
 var (
 	which   = flag.String("kv", "badger", "Which KV store to use.")
-	numKeys = flag.Int("keys_mil", 10, "How many million keys to write.")
+	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 )
 
-func newKey() (key []byte, pow int) {
+func newKey() (key []byte, pow uint) {
 	pow = 10 // 1KB
 	if rand.Intn(2) == 1 {
 		pow = 14 // 16KB
 	}
 	// pow = 4 + rand.Intn(21) // 2^4 = 16B -> 2^24 = 16 MB
-	k := rand.Int() % (*numKeys * mil)
+	k := rand.Int() % int(*numKeys*mil)
 	key = []byte(fmt.Sprintf("v=%02d-k=%016d", pow, k))
 	return key, pow
 }
 
-func newValue(pow int) []byte {
-	sz := 2 ^ pow
+func newValue(pow uint) []byte {
+	sz := 1 << pow
 	v := make([]byte, sz)
 	rand.Read(v)
 	return v
@@ -47,9 +47,16 @@ var ctx = context.Background()
 func writeBatch(bdb *badger.KV, rdb *store.Store) int {
 	wb := rdb.NewWriteBatch()
 	entries := make([]value.Entry, 0, 10000)
+	values := make(map[uint][]byte)
 	for i := 0; i < 10000; i++ {
 		key, pow := newKey()
-		v := newValue(pow)
+		var v []byte
+		if val, has := values[pow]; has {
+			v = val
+		} else {
+			v = newValue(pow)
+			values[pow] = v
+		}
 		e := value.Entry{
 			Key:   key,
 			Value: v,
@@ -97,15 +104,18 @@ func main() {
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
-			for written := 0; written < nw/N; {
-				written += writeBatch(bdb, rdb)
-				if written%mil == 0 {
+			var written float64
+			for written < nw/float64(N) {
+				written += float64(writeBatch(bdb, rdb))
+				if int(written)%int(mil) == 0 {
 					fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
 				}
 			}
+			fmt.Printf("[%d] Written %5.2fM key-val pairs\n", proc, written/mil)
 			wg.Done()
 		}(i)
 	}
+	wg.Add(1) // Block
 	wg.Wait()
 	if bdb != nil {
 		bdb.Close()
