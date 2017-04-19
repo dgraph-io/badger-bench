@@ -5,8 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
-	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
+	"github.com/pkg/profile"
 )
 
 const mil float64 = 1000000
@@ -24,44 +26,34 @@ var (
 	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 )
 
-func newKey() (key []byte, pow uint) {
-	pow = 10 // 1KB
+func fillEntry(e *value.Entry) {
+	var pow uint = 10 // 1KB
 	if rand.Intn(2) == 1 {
 		pow = 14 // 16KB
 	}
-	// pow = 4 + rand.Intn(21) // 2^4 = 16B -> 2^24 = 16 MB
 	k := rand.Int() % int(*numKeys*mil)
-	key = []byte(fmt.Sprintf("v=%02d-k=%016d", pow, k))
-	return key, pow
-}
+	key := fmt.Sprintf("v=%02d-k=%016d", pow, k)
+	if cap(e.Key) < len(key) {
+		e.Key = make([]byte, 2*len(key))
+	}
+	e.Key = e.Key[:len(key)]
+	copy(e.Key, key)
 
-func newValue(pow uint) []byte {
-	sz := 1 << pow
-	v := make([]byte, sz)
-	rand.Read(v)
-	return v
+	y.AssertTrue(cap(e.Value) == 1<<14)
+	vsz := 1 << pow
+	e.Value = e.Value[:vsz]
+	rand.Read(e.Value)
+
+	e.Meta = 0
+	e.Offset = 0
 }
 
 var ctx = context.Background()
 
-func writeBatch(bdb *badger.KV, rdb *store.Store) int {
+func writeBatch(entries []*value.Entry, bdb *badger.KV, rdb *store.Store) int {
 	wb := rdb.NewWriteBatch()
-	entries := make([]value.Entry, 0, 10000)
-	values := make(map[uint][]byte)
-	for i := 0; i < 10000; i++ {
-		key, pow := newKey()
-		var v []byte
-		if val, has := values[pow]; has {
-			v = val
-		} else {
-			v = newValue(pow)
-			values[pow] = v
-		}
-		e := value.Entry{
-			Key:   key,
-			Value: v,
-		}
-		entries = append(entries, e)
+	for _, e := range entries {
+		fillEntry(e)
 		wb.Put(e.Key, e.Value)
 	}
 	if bdb != nil {
@@ -74,10 +66,24 @@ func writeBatch(bdb *badger.KV, rdb *store.Store) int {
 }
 
 func main() {
+	mode := flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 	flag.Parse()
+	switch *mode {
+	case "cpu":
+		defer profile.Start(profile.CPUProfile).Stop()
+	case "mem":
+		defer profile.Start(profile.MemProfile).Stop()
+	case "mutex":
+		defer profile.Start(profile.MutexProfile).Stop()
+	case "block":
+		defer profile.Start(profile.BlockProfile).Stop()
+	default:
+		// do nothing
+	}
 
 	nw := *numKeys * mil
 	opt := badger.DefaultOptions
+	opt.NumMemtables = 3
 	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
@@ -99,14 +105,24 @@ func main() {
 		y.Check(err)
 	}
 
+	go http.ListenAndServe(":8080", nil)
+
 	N := 10
 	var wg sync.WaitGroup
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
+			entries := make([]*value.Entry, 100)
+			for i := 0; i < len(entries); i++ {
+				e := new(value.Entry)
+				e.Key = make([]byte, 10)
+				e.Value = make([]byte, 1<<14)
+				entries[i] = e
+			}
+
 			var written float64
 			for written < nw/float64(N) {
-				written += float64(writeBatch(bdb, rdb))
+				written += float64(writeBatch(entries, bdb, rdb))
 				if int(written)%int(mil) == 0 {
 					fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
 				}
@@ -115,7 +131,7 @@ func main() {
 			wg.Done()
 		}(i)
 	}
-	wg.Add(1) // Block
+	// 	wg.Add(1) // Block
 	wg.Wait()
 	if bdb != nil {
 		bdb.Close()
@@ -123,10 +139,5 @@ func main() {
 	if rdb != nil {
 		rdb.Close()
 	}
-	f, err := os.Create("m.prof")
-	y.Check(err)
-	pprof.WriteHeapProfile(f)
-	defer f.Close()
-
 	time.Sleep(10 * time.Second)
 }
