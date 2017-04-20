@@ -15,7 +15,6 @@ import (
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
-	"github.com/dgraph-io/dgraph/store"
 	"github.com/pkg/profile"
 )
 
@@ -50,17 +49,12 @@ func fillEntry(e *value.Entry) {
 
 var ctx = context.Background()
 
-func writeBatch(entries []*value.Entry, bdb *badger.KV, rdb *store.Store) int {
-	wb := rdb.NewWriteBatch()
+func writeBatch(entries []*value.Entry, bdb *badger.KV) int {
 	for _, e := range entries {
 		fillEntry(e)
-		wb.Put(e.Key, e.Value)
 	}
 	if bdb != nil {
 		y.Check(bdb.Write(ctx, entries))
-	}
-	if rdb != nil {
-		y.Check(rdb.WriteBatch(wb))
 	}
 	return len(entries)
 }
@@ -87,23 +81,23 @@ func main() {
 	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
-	rdir := "tmp/rocks"
+	// rdir := "tmp/rocks"
 
-	var err error
+	// var err error
 	var bdb *badger.KV
-	var rdb *store.Store
+	// var rdb *store.Store
 
 	if *which == "badger" {
-		os.RemoveAll("tmp/badger")
+		y.Check(os.RemoveAll("tmp/badger"))
 		os.MkdirAll("tmp/badger", 0777)
 		bdb = badger.NewKV(&opt)
 	}
-	if *which == "rocksdb" {
-		os.RemoveAll("tmp/rocks")
-		os.MkdirAll("tmp/rocks", 0777)
-		rdb, err = store.NewSyncStore(rdir)
-		y.Check(err)
-	}
+	// if *which == "rocksdb" {
+	// 	os.RemoveAll("tmp/rocks")
+	// 	os.MkdirAll("tmp/rocks", 0777)
+	// 	rdb, err = store.NewSyncStore(rdir)
+	// 	y.Check(err)
+	// }
 
 	go http.ListenAndServe(":8080", nil)
 
@@ -122,7 +116,7 @@ func main() {
 
 			var written float64
 			for written < nw/float64(N) {
-				written += float64(writeBatch(entries, bdb, rdb))
+				written += float64(writeBatch(entries, bdb))
 				if int(written)%int(mil) == 0 {
 					fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
 				}
@@ -136,8 +130,8 @@ func main() {
 	if bdb != nil {
 		bdb.Close()
 	}
-	if rdb != nil {
-		rdb.Close()
-	}
+	// if rdb != nil {
+	// 	rdb.Close()
+	// }
 	time.Sleep(10 * time.Second)
 }
