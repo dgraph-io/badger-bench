@@ -121,10 +121,10 @@ func (s *BadgerAdapter) Put(ctx context.Context, key, val []byte) {
 }
 
 func (s *BadgerAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
-	var entries []value.Entry
+	var entries []*value.Entry
 	AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
-		entries = append(entries, value.Entry{
+		entries = append(entries, &value.Entry{
 			Key:   key[i],
 			Value: val[i],
 		})
