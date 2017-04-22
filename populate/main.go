@@ -128,7 +128,7 @@ func main() {
 			for written < nw/float64(N) {
 				written += float64(writeBatch(entries))
 				if int(written)%100000 == 0 {
-					fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
+					fmt.Printf("[%d] Written %5.2fM key-val pairs\n", proc, written/mil)
 				}
 			}
 			fmt.Printf("[%d] Written %5.2fM key-val pairs\n", proc, written/mil)
@@ -138,9 +138,11 @@ func main() {
 	// 	wg.Add(1) // Block
 	wg.Wait()
 	if bdb != nil {
+		fmt.Println("closing badger")
 		bdb.Close()
 	}
 	if rdb != nil {
+		fmt.Println("closing rocks")
 		rdb.Close()
 	}
 	time.Sleep(10 * time.Second)
