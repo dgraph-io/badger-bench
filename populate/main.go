@@ -15,13 +15,14 @@ import (
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/dgraph/store"
 	"github.com/pkg/profile"
 )
 
 const mil float64 = 1000000
 
 var (
-	which   = flag.String("kv", "badger", "Which KV store to use.")
+	which   = flag.String("kv", "both", "Which KV store to use.")
 	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 )
 
@@ -48,13 +49,22 @@ func fillEntry(e *value.Entry) {
 }
 
 var ctx = context.Background()
+var bdb *badger.KV
+var rdb *store.Store
 
-func writeBatch(entries []*value.Entry, bdb *badger.KV) int {
+func writeBatch(entries []*value.Entry) int {
+	rb := rdb.NewWriteBatch()
+	defer rb.Destroy()
+
 	for _, e := range entries {
 		fillEntry(e)
+		rb.Put(e.Key, e.Value)
 	}
 	if bdb != nil {
 		y.Check(bdb.Write(ctx, entries))
+	}
+	if rdb != nil {
+		y.Check(rdb.WriteBatch(rb))
 	}
 	return len(entries)
 }
@@ -81,23 +91,23 @@ func main() {
 	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
-	// rdir := "tmp/rocks"
 
-	// var err error
-	var bdb *badger.KV
-	// var rdb *store.Store
+	var err error
 
-	if *which == "badger" {
+	if *which == "badger" || *which == "both" {
+		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll("tmp/badger"))
 		os.MkdirAll("tmp/badger", 0777)
 		bdb = badger.NewKV(&opt)
 	}
-	// if *which == "rocksdb" {
-	// 	os.RemoveAll("tmp/rocks")
-	// 	os.MkdirAll("tmp/rocks", 0777)
-	// 	rdb, err = store.NewSyncStore(rdir)
-	// 	y.Check(err)
-	// }
+	if *which == "rocksdb" || *which == "both" {
+		fmt.Println("Init Rocks")
+		os.RemoveAll("tmp/rocks")
+		os.MkdirAll("tmp/rocks", 0777)
+		rdb, err = store.NewStore("tmp/rocks")
+		// rdb, err = store.NewSyncStore("tmp/rocks")
+		y.Check(err)
+	}
 
 	go http.ListenAndServe(":8080", nil)
 
@@ -106,7 +116,7 @@ func main() {
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
-			entries := make([]*value.Entry, 100)
+			entries := make([]*value.Entry, 1000)
 			for i := 0; i < len(entries); i++ {
 				e := new(value.Entry)
 				e.Key = make([]byte, 10)
@@ -116,8 +126,8 @@ func main() {
 
 			var written float64
 			for written < nw/float64(N) {
-				written += float64(writeBatch(entries, bdb))
-				if int(written)%int(mil) == 0 {
+				written += float64(writeBatch(entries))
+				if int(written)%100000 == 0 {
 					fmt.Printf("[%d] Written %dM key-val pairs\n", proc, written/mil)
 				}
 			}
@@ -130,8 +140,8 @@ func main() {
 	if bdb != nil {
 		bdb.Close()
 	}
-	// if rdb != nil {
-	// 	rdb.Close()
-	// }
+	if rdb != nil {
+		rdb.Close()
+	}
 	time.Sleep(10 * time.Second)
 }
