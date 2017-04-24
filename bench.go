@@ -16,7 +16,6 @@ import (
 	"golang.org/x/net/trace"
 
 	"github.com/dgraph-io/badger/badger"
-	"github.com/dgraph-io/badger/value"
 	"github.com/pkg/errors"
 
 	"github.com/dgraph-io/dgraph/store"
@@ -121,10 +120,10 @@ func (s *BadgerAdapter) Put(ctx context.Context, key, val []byte) {
 }
 
 func (s *BadgerAdapter) BatchPut(ctx context.Context, key, val [][]byte) {
-	var entries []*value.Entry
+	var entries []*badger.Entry
 	AssertTrue(len(key) == len(val))
 	for i := 0; i < len(key); i++ {
-		entries = append(entries, &value.Entry{
+		entries = append(entries, &badger.Entry{
 			Key:   key[i],
 			Value: val[i],
 		})

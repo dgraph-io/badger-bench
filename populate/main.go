@@ -13,7 +13,6 @@ import (
 
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/table"
-	"github.com/dgraph-io/badger/value"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/pkg/profile"
@@ -26,7 +25,7 @@ var (
 	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 )
 
-func fillEntry(e *value.Entry) {
+func fillEntry(e *badger.Entry) {
 	var pow uint = 10 // 1KB
 	if rand.Intn(2) == 1 {
 		pow = 14 // 16KB
@@ -52,7 +51,7 @@ var ctx = context.Background()
 var bdb *badger.KV
 var rdb *store.Store
 
-func writeBatch(entries []*value.Entry) int {
+func writeBatch(entries []*badger.Entry) int {
 	rb := rdb.NewWriteBatch()
 	defer rb.Destroy()
 
@@ -116,9 +115,9 @@ func main() {
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
-			entries := make([]*value.Entry, 1000)
+			entries := make([]*badger.Entry, 100)
 			for i := 0; i < len(entries); i++ {
-				e := new(value.Entry)
+				e := new(badger.Entry)
 				e.Key = make([]byte, 10)
 				e.Value = make([]byte, 1<<14)
 				entries[i] = e
