@@ -90,6 +90,7 @@ func main() {
 	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = "tmp/badger"
+	opt.SyncWrites = false
 
 	var err error
 
