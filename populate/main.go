@@ -11,6 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/net/trace"
+
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
@@ -101,6 +103,15 @@ func main() {
 		// rdb, err = store.NewSyncStore("tmp/rocks")
 		y.Check(err)
 	}
+
+	http.HandleFunc("/debug/events", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		trace.RenderEvents(w, req, true)
+	})
+	http.HandleFunc("/debug/requests", func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		trace.Render(w, req, true)
+	})
 
 	go http.ListenAndServe("0.0.0.0:8080", nil)
 
