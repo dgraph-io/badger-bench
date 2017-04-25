@@ -20,14 +20,15 @@ var ctx = context.Background()
 
 func getStores() (*badger.KV, *store.Store) {
 	opt := badger.DefaultOptions
-	opt.MapTablesTo = table.Nothing
-	opt.Verbose = true
+	opt.MapTablesTo = table.LoadToRAM
+	opt.Verbose = false
 	opt.Dir = "tmp/badger"
 	opt.DoNotCompact = true
+	opt.ValueGCThreshold = 0.0
 	rdir := "tmp/rocks"
 	bdb := badger.NewKV(&opt)
 
-	rdb, err := store.NewSyncStore(rdir)
+	rdb, err := store.NewReadOnlyStore(rdir)
 	y.Check(err)
 	return bdb, rdb
 }
@@ -91,8 +92,9 @@ func BenchmarkIterate(b *testing.B) {
 	b.Run("badger-iterate-onlykeys", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
-			itr := bdb.NewIterator(context.Background(), 100, 0)
-			itr.SeekToFirst()
+			// 100 = size, 0 = num workers, false = fwd direction.
+			itr := bdb.NewIterator(context.Background(), 100, 0, false)
+			itr.Rewind()
 			for item := range itr.Ch() {
 				if item.Key() == nil {
 					break
@@ -106,8 +108,8 @@ func BenchmarkIterate(b *testing.B) {
 	b.Run("badger-iterate-withvals", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
-			itr := bdb.NewIterator(context.Background(), 100, 100)
-			itr.SeekToFirst()
+			itr := bdb.NewIterator(context.Background(), 100, 100, false)
+			itr.Rewind()
 			for item := range itr.Ch() {
 				if item.Key() == nil {
 					break
@@ -125,7 +127,7 @@ func BenchmarkIterate(b *testing.B) {
 			var count int
 			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
 				// To make it equivalent of what Badger iterator does,
-				// we allocate memory for both key and value.
+				// we allocate memory for key.
 				key := make([]byte, itr.Key().Size())
 				copy(key, itr.Key().Data())
 				// val := make([]byte, itr.Value().Size())
