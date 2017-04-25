@@ -21,28 +21,21 @@ import (
 const mil float64 = 1000000
 
 var (
-	which   = flag.String("kv", "both", "Which KV store to use.")
-	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
+	which     = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
+	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
+	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 )
 
 func fillEntry(e *badger.Entry) {
-	var pow uint = 10 // 1KB
-	if rand.Intn(2) == 1 {
-		pow = 14 // 16KB
-	}
 	k := rand.Int() % int(*numKeys*mil)
-	key := fmt.Sprintf("v=%02d-k=%016d", pow, k)
+	key := fmt.Sprintf("vsz=%05d-k=%010d", *valueSize, k) // 22 bytes.
 	if cap(e.Key) < len(key) {
 		e.Key = make([]byte, 2*len(key))
 	}
 	e.Key = e.Key[:len(key)]
 	copy(e.Key, key)
 
-	y.AssertTrue(cap(e.Value) == 1<<14)
-	vsz := 1 << pow
-	e.Value = e.Value[:vsz]
 	rand.Read(e.Value)
-
 	e.Meta = 0
 	e.Offset = 0
 }
@@ -109,7 +102,7 @@ func main() {
 		y.Check(err)
 	}
 
-	go http.ListenAndServe(":8080", nil)
+	go http.ListenAndServe("0.0.0.0:8080", nil)
 
 	N := 10
 	var wg sync.WaitGroup
@@ -120,7 +113,7 @@ func main() {
 			for i := 0; i < len(entries); i++ {
 				e := new(badger.Entry)
 				e.Key = make([]byte, 10)
-				e.Value = make([]byte, 1<<14)
+				e.Value = make([]byte, *valueSize)
 				entries[i] = e
 			}
 
