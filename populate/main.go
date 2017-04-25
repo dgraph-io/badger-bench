@@ -79,6 +79,10 @@ func main() {
 		// do nothing
 	}
 
+	trace.AuthRequest = func(req *http.Request) (any, sensitive bool) {
+		return true, true
+	}
+
 	nw := *numKeys * mil
 	opt := badger.DefaultOptions
 	opt.NumMemtables = 3
@@ -103,15 +107,6 @@ func main() {
 		// rdb, err = store.NewSyncStore("tmp/rocks")
 		y.Check(err)
 	}
-
-	http.HandleFunc("/debug/events", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		trace.RenderEvents(w, req, true)
-	})
-	http.HandleFunc("/debug/requests", func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		trace.Render(w, req, true)
-	})
 
 	go http.ListenAndServe("0.0.0.0:8080", nil)
 
