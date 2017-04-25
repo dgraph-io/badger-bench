@@ -112,7 +112,7 @@ func main() {
 			entries := make([]*badger.Entry, 100)
 			for i := 0; i < len(entries); i++ {
 				e := new(badger.Entry)
-				e.Key = make([]byte, 10)
+				e.Key = make([]byte, 22)
 				e.Value = make([]byte, *valueSize)
 				entries[i] = e
 			}
