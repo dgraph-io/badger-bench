@@ -65,3 +65,24 @@ du -shc *
 15G
 ```
 
+# 128 byte iteration
+$ go test --bench "BenchmarkIterate" --timeout 60m
+Replaying compact log: tmp/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:24 Len:159 Offset:532734111}
+key=vsz=00128-k=0124975830
+l.opt.ValueGCThreshold = 0.0
+Stopping runGCInLoop. Signal: false..............................................................................................BenchmarkIterate/rocksdb-iterate-4                    1        1455388379244 ns/op
+--- BENCH: BenchmarkIterate/rocksdb-iterate-4
+        bench_test.go:109: 
+                [0] Counted 94815348 keys
+..............................................................................................BenchmarkIterate/badger-iterate-onlykeys-4               1        103829388223 ns/op
+--- BENCH: BenchmarkIterate/badger-iterate-onlykeys-4
+        bench_test.go:128: 
+                [0] Counted 94821926 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       1565.885s
+
