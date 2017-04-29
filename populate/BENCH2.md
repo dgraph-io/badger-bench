@@ -1,4 +1,4 @@
-# Amazon i3.large instance: 2 cores, 16G RAM, 450G local SSD.
+# Amazon i3.large dedicated instance: 2 cores, 16G RAM, 450G local SSD.
 
 As shown by fio, this instance gives 93K random iops at 4K block size.
 
