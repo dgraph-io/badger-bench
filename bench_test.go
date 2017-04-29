@@ -96,6 +96,8 @@ func BenchmarkIterate(b *testing.B) {
 			itr := rdb.NewIterator()
 			var count int
 			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+				itr.Key().Data()
+				itr.Value().Data()
 				count++
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
@@ -113,6 +115,7 @@ func BenchmarkIterate(b *testing.B) {
 					break
 				}
 				count++
+				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
@@ -129,6 +132,7 @@ func BenchmarkIterate(b *testing.B) {
 				}
 				item.Value()
 				count++
+				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
