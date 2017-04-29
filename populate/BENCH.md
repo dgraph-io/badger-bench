@@ -32,6 +32,41 @@ $ du -shc *
 # 2.9G for LSM tree (.sst files), and 21G for value log.
 ```
 
+### Only LSM tree
+
+In this second set up, ValueThreshold was set to 1MB, hence all data was written directly to LSM tree.
+
+```
+Command being timed: "./populate --kv badger --keys_mil 150 --valsz 128"
+User time (seconds): 2394.70
+System time (seconds): 439.20
+Percent of CPU this job got: 112%
+Elapsed (wall clock) time (h:mm:ss or m:ss): 42:03.96
+Average shared text size (kbytes): 0
+Average unshared data size (kbytes): 0
+Average stack size (kbytes): 0
+Average total size (kbytes): 0
+Maximum resident set size (kbytes): 8696232
+Average resident set size (kbytes): 0
+Major (requiring I/O) page faults: 50
+Minor (reclaiming a frame) page faults: 65429542
+Voluntary context switches: 11593958
+Involuntary context switches: 979375
+Swaps: 0
+File system inputs: 122782440
+File system outputs: 419123896
+Socket messages sent: 0
+Socket messages received: 0
+Signals delivered: 0
+Page size (bytes): 4096
+Exit status: 0
+```
+
+```
+du -shc *
+15G total  # Zero for value log, all for LSM tree.
+```
+
 ## RocksDB: 128 byte value
 
 ```
