@@ -109,3 +109,29 @@ $ du -sh /mnt/data/badger
 40G     /mnt/data/badger
 5.5G *.sst  # LSM tree, can be kept in RAM.
 
+Random Reads: Badger is 3.8x faster (no bloom filters in Badger yet)
+
+$ go test --bench BenchmarkReadRandom --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 30m --benchtime 3m
+Replaying compact log: /mnt/data/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:40 Len:159 Offset:482792052}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=00128-k=0097023306
+BenchmarkReadRandom/badger-random-reads=250.000000-2            10000000             40108 ns/op
+--- BENCH: BenchmarkReadRandom/badger-random-reads=250.000000-2
+        bench_test.go:62: badger 324642 keys had valid values.
+        bench_test.go:62: badger 324473 keys had valid values.
+        bench_test.go:62: badger 3244587 keys had valid values.
+        bench_test.go:62: badger 3245332 keys had valid values.
+BenchmarkReadRandom/rocksdb-random-reads=250.000000-2            2000000            152355 ns/op
+--- BENCH: BenchmarkReadRandom/rocksdb-random-reads=250.000000-2
+        bench_test.go:77: rocks 149828 keys had valid values.
+        bench_test.go:77: rocks 150172 keys had valid values.
+        bench_test.go:77: rocks 999335 keys had valid values.
+        bench_test.go:77: rocks 1000665 keys had valid values.
+PASS
+ok      github.com/dgraph-io/badger-bench       820.758s
+
