@@ -1,0 +1,55 @@
+# Amazon i3.large instance: 2 cores, 16G RAM, 450G local SSD.
+
+As shown by fio, this instance gives 93K random iops at 4K block size.
+
+$ fio --name=randread --ioengine=libaio --iodepth=32 --rw=randread --bs=4k --direct=0 --size=2G --numjobs=16 --runtime=240 --group_reporting
+randread: (g=0): rw=randread, bs=4K-4K/4K-4K/4K-4K, ioengine=libaio, iodepth=32
+...
+fio-2.2.10
+Starting 16 processes
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+randread: Laying out IO file(s) (1 file(s) / 2048MB)
+Jobs: 1 (f=1): [r(1),_(15)] [100.0% done] [240.4MB/0KB/0KB /s] [61.6K/0/0 iops] [eta 00m:00s]        s]
+randread: (groupid=0, jobs=16): err= 0: pid=13063: Sat Apr 29 12:37:49 2017
+  read : io=32768MB, bw=371947KB/s, iops=92986, runt= 90213msec
+    slat (usec): min=31, max=24800, avg=163.54, stdev=200.35
+    clat (usec): min=1, max=69452, avg=5180.95, stdev=1919.00
+     lat (usec): min=91, max=69546, avg=5345.05, stdev=1958.18
+    clat percentiles (usec):
+     |  1.00th=[ 3152],  5.00th=[ 3312], 10.00th=[ 3440], 20.00th=[ 3664],
+     | 30.00th=[ 3856], 40.00th=[ 4128], 50.00th=[ 4512], 60.00th=[ 5024],
+     | 70.00th=[ 5728], 80.00th=[ 6624], 90.00th=[ 7904], 95.00th=[ 9024],
+     | 99.00th=[11456], 99.50th=[12352], 99.90th=[14528], 99.95th=[15680],
+     | 99.99th=[20096]
+    bw (KB  /s): min=18632, max=36608, per=6.43%, avg=23925.03, stdev=2987.85
+    lat (usec) : 2=0.01%, 4=0.01%, 100=0.01%, 250=0.01%, 500=0.01%
+    lat (usec) : 750=0.01%, 1000=0.01%
+    lat (msec) : 2=0.01%, 4=36.40%, 10=60.93%, 20=2.66%, 50=0.01%
+    lat (msec) : 100=0.01%
+  cpu          : usr=2.31%, sys=6.14%, ctx=8463944, majf=0, minf=653
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=0.1%, 32=100.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.1%, 64=0.0%, >=64=0.0%
+     issued    : total=r=8388608/w=0/d=0, short=r=0/w=0/d=0, drop=r=0/w=0/d=0
+     latency   : target=0, window=0, percentile=100.00%, depth=32
+
+Run status group 0 (all jobs):
+   READ: io=32768MB, aggrb=371946KB/s, minb=371946KB/s, maxb=371946KB/s, mint=90213msec, maxt=90213msec
+
+Disk stats (read/write):
+  nvme0n1: ios=8386313/19379, merge=0/0, ticks=877396/60, in_queue=880100, util=100.00%
+
