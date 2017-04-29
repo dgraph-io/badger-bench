@@ -24,13 +24,15 @@ import (
 var (
 	flagBench      = flag.String("bench", "", "Run which benchmark?")
 	flagDB         = flag.String("db", "", "Which DB: rocksdb, badger")
-	flagValueSize  = flag.Int("value_size", 100, "Size of each value.")
 	flagBatchSize  = flag.Int("batch_size", 100, "Size of writebatch.")
 	flagNumWrites  = flag.Int("writes", 50000, "Number of key-value pairs to write.")
 	flagNumReads   = flag.Int("reads", 100000, "Number of key-value pairs to read.")
 	flagCpuProfile = flag.String("cpu_profile", "", "Write cpu profile to file.")
 	flagVerbose    = flag.Bool("verbose", false, "Verbose.")
-	flagDir        = flag.String("dir", "bench-tmp", "Where data is temporarily stored.")
+
+	// Also used by bench_test.go
+	flagDir       = flag.String("dir", "bench-tmp", "Where data is temporarily stored.")
+	flagValueSize = flag.Int("valsz", 128, "Size of each value.")
 
 	rdbStore *store.Store
 )

@@ -16,16 +16,22 @@ import (
 	"github.com/dgraph-io/dgraph/store"
 )
 
-var ctx = context.Background()
+var (
+	ctx     = context.Background()
+	numKeys = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
+)
+
+const Mi int = 1000000
+const Mf float64 = 1000000
 
 func getStores() (*badger.KV, *store.Store) {
 	opt := badger.DefaultOptions
 	opt.MapTablesTo = table.LoadToRAM
 	opt.Verbose = false
-	opt.Dir = "tmp/badger"
+	opt.Dir = *flagDir + "/badger"
 	opt.DoNotCompact = true
 	opt.ValueGCThreshold = 0.0
-	rdir := "tmp/rocks"
+	rdir := *flagDir + "/rocks"
 	bdb := badger.NewKV(&opt)
 
 	rdb, err := store.NewReadOnlyStore(rdir)
@@ -33,47 +39,43 @@ func getStores() (*badger.KV, *store.Store) {
 	return bdb, rdb
 }
 
-var numKeys = flag.Int("keys_mil", 10, "How many million keys to write.")
-
-const mil int = 1000000
-
-func newKey() (key []byte, pow int) {
-	pow = 10 // 1KB
-	if rand.Intn(2) == 1 {
-		pow = 14 // 16KB
-	}
-	k := rand.Int() % (*numKeys * mil)
-	key = []byte(fmt.Sprintf("v=%02d-k=%016d", pow, k))
-	return key, pow
+func newKey() []byte {
+	k := rand.Int() % int(*numKeys*Mf)
+	key := fmt.Sprintf("vsz=%05d-k=%010d", *flagValueSize, k) // 22 bytes.
+	return []byte(key)
 }
 
 func BenchmarkReadRandom(b *testing.B) {
 	ctx := context.Background()
 
 	bdb, rdb := getStores()
-	b.Run(fmt.Sprintf("badger-random-reads=%d", *numKeys), func(b *testing.B) {
+	b.Run(fmt.Sprintf("badger-random-reads=%f", *numKeys), func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			var count int
 			for pb.Next() {
-				key, _ := newKey()
-				if val := bdb.Get(ctx, key); val != nil {
+				key := newKey()
+				if val, _ := bdb.Get(ctx, key); val != nil {
 					count++
 				}
 			}
-			// b.Logf("%d keys had valid values.", count)
+			if count > 100000 {
+				b.Logf("badger %d keys had valid values.", count)
+			}
 		})
 	})
 
-	b.Run(fmt.Sprintf("rocksdb-random-reads=%d", *numKeys), func(b *testing.B) {
+	b.Run(fmt.Sprintf("rocksdb-random-reads=%f", *numKeys), func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			var count int
 			for pb.Next() {
-				key, _ := newKey()
+				key := newKey()
 				if _, err := rdb.Get(key); err == nil {
 					count++
 				}
 			}
-			// b.Logf("%d keys had valid values.", count)
+			if count > 100000 {
+				b.Logf("rocks %d keys had valid values.", count)
+			}
 		})
 	})
 }
