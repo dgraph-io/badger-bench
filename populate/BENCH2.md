@@ -53,3 +53,30 @@ Run status group 0 (all jobs):
 Disk stats (read/write):
   nvme0n1: ios=8386313/19379, merge=0/0, ticks=877396/60, in_queue=880100, util=100.00%
 
+        Command being timed: "./populate --kv rocksdb --valsz 128 --keys_mil 250"
+        User time (seconds): 2685.96
+        System time (seconds): 532.66
+        Percent of CPU this job got: 136%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 39:10.78
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 611888
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 39
+        Minor (reclaiming a frame) page faults: 2169690
+        Voluntary context switches: 11455264
+        Involuntary context switches: 4606594
+        Swaps: 0
+        File system inputs: 132138368
+        File system outputs: 594809048
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+$ du -sh /mnt/data/rocks 
+24G     /mnt/data/rocks
+
