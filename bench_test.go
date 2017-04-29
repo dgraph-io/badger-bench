@@ -91,6 +91,17 @@ func BenchmarkIterate(b *testing.B) {
 	pprof.StartCPUProfile(f)
 	defer pprof.StopCPUProfile()
 
+	b.Run("rocksdb-iterate", func(b *testing.B) {
+		for j := 0; j < b.N; j++ {
+			itr := rdb.NewIterator()
+			var count int
+			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+				count++
+			}
+			b.Logf("[%d] Counted %d keys\n", j, count)
+		}
+	})
+
 	b.Run("badger-iterate-onlykeys", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
@@ -117,23 +128,6 @@ func BenchmarkIterate(b *testing.B) {
 					break
 				}
 				item.Value()
-				count++
-			}
-			b.Logf("[%d] Counted %d keys\n", j, count)
-		}
-	})
-
-	b.Run("rocksdb-iterate", func(b *testing.B) {
-		for j := 0; j < b.N; j++ {
-			itr := rdb.NewIterator()
-			var count int
-			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
-				// To make it equivalent of what Badger iterator does,
-				// we allocate memory for key.
-				key := make([]byte, itr.Key().Size())
-				copy(key, itr.Key().Data())
-				// val := make([]byte, itr.Value().Size())
-				// copy(val, itr.Value().Data())
 				count++
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
