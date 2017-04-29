@@ -26,6 +26,7 @@ var (
 	which     = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
+	dir       = flag.String("dir", "/mnt/data", "Base dir for writes.")
 )
 
 func fillEntry(e *badger.Entry) {
@@ -85,26 +86,24 @@ func main() {
 
 	nw := *numKeys * mil
 	opt := badger.DefaultOptions
-	opt.NumMemtables = 3
 	opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
-	opt.Dir = "tmp/badger"
+	opt.Dir = *dir + "/badger"
 	opt.SyncWrites = false
 
 	var err error
 
 	if *which == "badger" || *which == "both" {
 		fmt.Println("Init Badger")
-		y.Check(os.RemoveAll("tmp/badger"))
-		os.MkdirAll("tmp/badger", 0777)
+		y.Check(os.RemoveAll(*dir + "/badger"))
+		os.MkdirAll(*dir+"/badger", 0777)
 		bdb = badger.NewKV(&opt)
 	}
 	if *which == "rocksdb" || *which == "both" {
 		fmt.Println("Init Rocks")
-		os.RemoveAll("tmp/rocks")
-		os.MkdirAll("tmp/rocks", 0777)
-		rdb, err = store.NewStore("tmp/rocks")
-		// rdb, err = store.NewSyncStore("tmp/rocks")
+		os.RemoveAll(*dir + "/rocks")
+		os.MkdirAll(*dir+"/rocks", 0777)
+		rdb, err = store.NewStore(*dir + "/rocks")
 		y.Check(err)
 	}
 
