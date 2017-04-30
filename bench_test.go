@@ -108,7 +108,7 @@ func BenchmarkIterate(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			// 100 = size, 0 = num workers, false = fwd direction.
-			itr := bdb.NewIterator(context.Background(), 100, 0, false)
+			itr := bdb.NewIterator(context.Background(), 10000, 0, false)
 			itr.Rewind()
 			for item := range itr.Ch() {
 				if item.Key() == nil {
@@ -124,7 +124,7 @@ func BenchmarkIterate(b *testing.B) {
 	b.Run("badger-iterate-withvals", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
-			itr := bdb.NewIterator(context.Background(), 100, 100, false)
+			itr := bdb.NewIterator(context.Background(), 10000, 100, false)
 			itr.Rewind()
 			for item := range itr.Ch() {
 				if item.Key() == nil {
