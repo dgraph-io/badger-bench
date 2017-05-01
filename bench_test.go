@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
-	"runtime/pprof"
 	"testing"
 
 	"github.com/dgraph-io/badger/badger"
@@ -24,19 +23,20 @@ var (
 const Mi int = 1000000
 const Mf float64 = 1000000
 
-func getStores() (*badger.KV, *store.Store) {
+func getBadger() *badger.KV {
 	opt := badger.DefaultOptions
 	opt.MapTablesTo = table.LoadToRAM
 	opt.Verbose = false
 	opt.Dir = *flagDir + "/badger"
 	opt.DoNotCompact = true
 	opt.ValueGCThreshold = 0.0
-	rdir := *flagDir + "/rocks"
-	bdb := badger.NewKV(&opt)
+	return badger.NewKV(&opt)
+}
 
-	rdb, err := store.NewReadOnlyStore(rdir)
+func getRocks() *store.Store {
+	rdb, err := store.NewReadOnlyStore(*flagDir + "/rocks")
 	y.Check(err)
-	return bdb, rdb
+	return rdb
 }
 
 func newKey() []byte {
@@ -45,11 +45,21 @@ func newKey() []byte {
 	return []byte(key)
 }
 
-func BenchmarkReadRandom(b *testing.B) {
-	ctx := context.Background()
+func print(count int) {
+	if count%100000 == 0 {
+		fmt.Printf(".")
+	} else if count%Mi == 0 {
+		fmt.Printf("-")
+	}
+}
 
-	bdb, rdb := getStores()
-	b.Run(fmt.Sprintf("badger-random-reads=%f", *numKeys), func(b *testing.B) {
+func BenchmarkReadRandomBadger(b *testing.B) {
+	fmt.Println("Called BenchmarkReadRandomBadger")
+	ctx := context.Background()
+	bdb := getBadger()
+	defer bdb.Close()
+
+	b.Run("read-random-badger", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			var count int
 			for pb.Next() {
@@ -63,8 +73,13 @@ func BenchmarkReadRandom(b *testing.B) {
 			}
 		})
 	})
+}
 
-	b.Run(fmt.Sprintf("rocksdb-random-reads=%f", *numKeys), func(b *testing.B) {
+func BenchmarkReadRandomRocks(b *testing.B) {
+	rdb := getRocks()
+	defer rdb.Close()
+
+	b.Run("read-random-rocks", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			var count int
 			for pb.Next() {
@@ -80,29 +95,45 @@ func BenchmarkReadRandom(b *testing.B) {
 	})
 }
 
-func BenchmarkIterate(b *testing.B) {
-	bdb, rdb := getStores()
-	b.ResetTimer()
-
-	f, err := os.Create("cpu.prof")
-	if err != nil {
-		b.Fatalf("Error: %v", err)
+func safecopy(dst []byte, src []byte) []byte {
+	if cap(dst) < len(src) {
+		dst = make([]byte, len(src))
 	}
-	pprof.StartCPUProfile(f)
-	defer pprof.StopCPUProfile()
+	dst = dst[0:len(src)]
+	copy(dst, src)
+	return dst
+}
+
+func BenchmarkIterateRocks(b *testing.B) {
+	rdb := getRocks()
+	k := make([]byte, 1024)
+	v := make([]byte, Mi)
+	b.ResetTimer()
 
 	b.Run("rocksdb-iterate", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			itr := rdb.NewIterator()
 			var count int
 			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
-				itr.Key().Data()
-				itr.Value().Data()
+				{
+					// do some processing.
+					k = safecopy(k, itr.Key().Data())
+					v = safecopy(v, itr.Value().Data())
+				}
 				count++
+				if count > 2*Mi {
+					break
+				}
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
 	})
+}
+
+func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
+	bdb := getBadger()
+	k := make([]byte, 1024)
+	b.ResetTimer()
 
 	b.Run("badger-iterate-onlykeys", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
@@ -114,24 +145,46 @@ func BenchmarkIterate(b *testing.B) {
 				if item.Key() == nil {
 					break
 				}
+				{
+					// do some processing.
+					k = safecopy(k, item.Key())
+				}
 				count++
+				if count > 2*Mi {
+					break
+				}
 				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
 	})
+}
+
+func BenchmarkIterateBadgerWithValues(b *testing.B) {
+	bdb := getBadger()
+	k := make([]byte, 1024)
+	v := make([]byte, Mi)
+	b.ResetTimer()
 
 	b.Run("badger-iterate-withvals", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
-			itr := bdb.NewIterator(context.Background(), 10000, 100, false)
+			itr := bdb.NewIterator(context.Background(), 1000, 8, false)
 			itr.Rewind()
 			for item := range itr.Ch() {
 				if item.Key() == nil {
 					break
 				}
-				item.Value()
+				{
+					// do some processing.
+					k = safecopy(k, item.Key())
+					v = safecopy(v, item.Value())
+				}
 				count++
+				print(count)
+				if count >= 2*Mi {
+					break
+				}
 				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
