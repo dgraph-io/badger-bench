@@ -105,6 +105,34 @@ $ du -sh /mnt/data/rocks
         Page size (bytes): 4096
         Exit status: 0
 
+
+Another run:
+
+        Command being timed: "./populate --kv badger --valsz 128 --keys_mil 250"
+        User time (seconds): 7554.49
+        System time (seconds): 453.40
+        Percent of CPU this job got: 187%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:11:03
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 9148640
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 96
+        Minor (reclaiming a frame) page faults: 3906526
+        Voluntary context switches: 3386315
+        Involuntary context switches: 1624119
+        Swaps: 0
+        File system inputs: 30160968
+        File system outputs: 328131728
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+
 $ du -sh /mnt/data/badger
 40G     /mnt/data/badger
 5.5G *.sst  # LSM tree, can be kept in RAM.
