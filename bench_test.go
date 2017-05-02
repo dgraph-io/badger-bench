@@ -121,7 +121,7 @@ func BenchmarkIterateRocks(b *testing.B) {
 					v = safecopy(v, itr.Value().Data())
 				}
 				count++
-				if count > 2*Mi {
+				if count >= 2*Mi {
 					break
 				}
 			}
@@ -140,7 +140,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 			var count int
 			// 100 = size, 0 = num workers, false = fwd direction.
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
+			opt.PrefetchSize = 100
 			itr := bdb.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
@@ -149,7 +149,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 					k = safecopy(k, item.Key())
 				}
 				count++
-				if count > 2*Mi {
+				if count >= 2*Mi {
 					break
 				}
 			}
@@ -168,7 +168,7 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
+			opt.PrefetchSize = 100
 			opt.FetchValues = true
 			itr := bdb.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
