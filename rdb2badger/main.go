@@ -60,7 +60,7 @@ func printStats(histogram *hdrhistogram.Histogram, buckets int) {
 
 // Rdb2badger copies data from RocksDB store to Badger.
 // Additionaly it computes basic statics of value sizes.
-func Rdb2badger(ctx context.Context, rdb *store.Store, bdb *badger.KV, records int) {
+func Rdb2badger(ctx context.Context, rdb *store.Store, bdb *badger.KV, records, bufferSize int) {
 	it := rdb.NewIterator()
 	defer it.Close()
 
@@ -68,7 +68,6 @@ func Rdb2badger(ctx context.Context, rdb *store.Store, bdb *badger.KV, records i
 
 	bar := pb.StartNew(records)
 
-	bufferSize := 1000
 	entriesBuffer := make([]*badger.Entry, bufferSize)
 	nextFree := 0
 
@@ -112,6 +111,7 @@ var (
 	input  = flag.String("input", "tmp/rocksdb", "Path to RocksDB data.")
 	output = flag.String("output", "tmp/badger", "Path to Badger data.")
 	limit  = flag.Int("limit", 100, "Limit of number of records to retrieve.")
+	batch  = flag.Int("batch", 1000, "Batch size for writes.")
 )
 
 func main() {
@@ -129,6 +129,7 @@ func main() {
 	opt.Verbose = true
 	opt.Dir = *output
 	opt.SyncWrites = false
+	opt.ValueGCThreshold = 0.0
 
 	y.Check(os.RemoveAll(*output))
 	err = os.MkdirAll(*output, 0777)
@@ -136,5 +137,5 @@ func main() {
 	bdb := badger.NewKV(&opt)
 	defer bdb.Close()
 
-	Rdb2badger(ctx, rdb, bdb, *limit)
+	Rdb2badger(ctx, rdb, bdb, *limit, *batch)
 }
