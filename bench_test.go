@@ -139,12 +139,11 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			// 100 = size, 0 = num workers, false = fwd direction.
-			itr := bdb.NewIterator(context.Background(), 10000, 0, false)
-			itr.Rewind()
-			for item := range itr.Ch() {
-				if item.Key() == nil {
-					break
-				}
+			opt := badger.IteratorOptions{}
+			opt.PrefetchSize = 10000
+			itr := bdb.NewIterator(opt)
+			for itr.Rewind(); itr.Valid(); itr.Next() {
+				item := itr.Item()
 				{
 					// do some processing.
 					k = safecopy(k, item.Key())
@@ -153,7 +152,6 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 				if count > 2*Mi {
 					break
 				}
-				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
@@ -169,12 +167,12 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 	b.Run("badger-iterate-withvals", func(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
-			itr := bdb.NewIterator(context.Background(), 1000, 8, false)
-			itr.Rewind()
-			for item := range itr.Ch() {
-				if item.Key() == nil {
-					break
-				}
+			opt := badger.IteratorOptions{}
+			opt.PrefetchSize = 10000
+			opt.FetchValues = true
+			itr := bdb.NewIterator(opt)
+			for itr.Rewind(); itr.Valid(); itr.Next() {
+				item := itr.Item()
 				{
 					// do some processing.
 					k = safecopy(k, item.Key())
@@ -185,7 +183,6 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 				if count >= 2*Mi {
 					break
 				}
-				itr.Recycle(item)
 			}
 			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
