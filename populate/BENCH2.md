@@ -163,3 +163,45 @@ BenchmarkReadRandom/rocksdb-random-reads=250.000000-2            2000000        
 PASS
 ok      github.com/dgraph-io/badger-bench       820.758s
 
+
+### Iteration
+
+$ go test --bench BenchmarkIterateRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --cpuprofile cpu.out
+BenchmarkIterateRocks/rocksdb-iterate-2                        1        5806763436 ns/op
+--- BENCH: BenchmarkIterateRocks/rocksdb-iterate-2
+        bench_test.go:128: [0] Counted 2000000 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       6.987s
+
+$ go test --bench BenchmarkIterateBadgerOnly --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --cpuprofile cpu.out
+Replaying compact log: /mnt/data/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:39 Len:163 Offset:1012268142}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=00128-k=0098569193
+BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2                       2         713078716 ns/op
+--- BENCH: BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2
+        bench_test.go:156: [0] Counted 2000000 keys
+        bench_test.go:156: [0] Counted 2000000 keys
+        bench_test.go:156: [1] Counted 2000000 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       10.198s
+
+$ go test --bench BenchmarkIterateBadgerWithValues --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m
+Replaying compact log: /mnt/data/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:39 Len:163 Offset:1012268142}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=00128-k=0098569193
+....................BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2                 1        75781455080 ns/op
+--- BENCH: BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2
+        bench_test.go:187: [0] Counted 2000000 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       81.401s
+
