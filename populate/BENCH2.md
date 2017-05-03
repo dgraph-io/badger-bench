@@ -113,19 +113,18 @@ $ du -sh /mnt/data/badger
 38G     /mnt/data/badger
 5.8G *.sst  # LSM tree, can be kept in RAM.
 
-Random Reads: Badger is 3.8x faster (no bloom filters in Badger yet)
+Random Reads: Badger is 3.67x faster
 
-$ go test --bench BenchmarkReadRandomRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 2m
-BenchmarkReadRandomRocks/read-random-rocks-2             1000000            126855 ns/op
+$ go test --bench BenchmarkReadRandomRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 3m 
+BenchmarkReadRandomRocks/read-random-rocks-2             2000000            118982 ns/op
 --- BENCH: BenchmarkReadRandomRocks/read-random-rocks-2
-        bench_test.go:92: rocks 149897 keys had valid values.
-        bench_test.go:92: rocks 150103 keys had valid values.
-        bench_test.go:92: rocks 500075 keys had valid values.
-        bench_test.go:92: rocks 499925 keys had valid values.
+        bench_test.go:92: rocks 149864 keys had valid values.
+        bench_test.go:92: rocks 150136 keys had valid values.
+        bench_test.go:92: rocks 1000693 keys had valid values.
+        bench_test.go:92: rocks 999307 keys had valid values.
 PASS
-ok      github.com/dgraph-io/badger-bench       182.839s
 
-$ go test --bench BenchmarkReadRandomBadger --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 2m
+$ go test --bench BenchmarkReadRandomBadger --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 3m
 Called BenchmarkReadRandomBadger
 Replaying compact log: /mnt/data/badger/clog
 All compactions in compact log are done.
@@ -135,23 +134,20 @@ NOT running any compactions due to DB options.
 Seeking at value pointer: {Fid:37 Len:163 Offset:1022845212}
 l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
 key=vsz=00128-k=0025059055
-BenchmarkReadRandomBadger/read-random-badger-2           5000000             36297 ns/op
+BenchmarkReadRandomBadger/read-random-badger-2          10000000            32361 ns/op
 --- BENCH: BenchmarkReadRandomBadger/read-random-badger-2
-        bench_test.go:72: badger 324978 keys had valid values.
-        bench_test.go:72: badger 324914 keys had valid values.
-        bench_test.go:72: badger 1621919 keys had valid values.
-        bench_test.go:72: badger 1624058 keys had valid values.
+        bench_test.go:72: badger 325009 keys had valid values.
+        bench_test.go:72: badger 324883 keys had valid values.
+        bench_test.go:72: badger 3247736 keys had valid values.
+        bench_test.go:72: badger 3243258 keys had valid values.
 Sending signal to 0 registered with name "value-gc"
 Sending signal to 1 registered with name "writes"
 --->> Size of bloom filter: 116
 =======> Deallocating skiplist
+Sending signal to 0 registered with name "memtable"
 Level "value-gc" already got signal
 Level "writes" already got signal
-Sending signal to 0 registered with name "memtable"
 PASS
-ok      github.com/dgraph-io/badger-bench       239.744s
-
-
 
 ### Iteration
 
