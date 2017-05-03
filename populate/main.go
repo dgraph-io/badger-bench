@@ -14,7 +14,6 @@ import (
 	"golang.org/x/net/trace"
 
 	"github.com/dgraph-io/badger/badger"
-	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/pkg/profile"
@@ -86,7 +85,7 @@ func main() {
 
 	nw := *numKeys * mil
 	opt := badger.DefaultOptions
-	opt.MapTablesTo = table.Nothing
+	// opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
 	opt.Dir = *dir + "/badger"
 	opt.SyncWrites = false
