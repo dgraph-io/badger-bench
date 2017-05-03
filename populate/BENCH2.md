@@ -81,51 +81,27 @@ $ du -sh /mnt/data/rocks
 24G     /mnt/data/rocks
 
 
+In this case, we set the value log GC threshold to 0.5. Turns out doing value log GC can be expensive.
+So, we should only do it sometimes. It's only worth if saving significant amount of disk space.
+
         Command being timed: "./populate --kv badger --valsz 128 --keys_mil 250"
-        User time (seconds): 8678.95
-        System time (seconds): 655.35
-        Percent of CPU this job got: 179%
-        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:26:27
+        User time (seconds): 4983.09
+        System time (seconds): 166.96
+        Percent of CPU this job got: 188%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 45:26.56
         Average shared text size (kbytes): 0
         Average unshared data size (kbytes): 0
         Average stack size (kbytes): 0
         Average total size (kbytes): 0
-        Maximum resident set size (kbytes): 8050912
+        Maximum resident set size (kbytes): 14660624
         Average resident set size (kbytes): 0
-        Major (requiring I/O) page faults: 104
-        Minor (reclaiming a frame) page faults: 3528460
-        Voluntary context switches: 4176458
-        Involuntary context switches: 2220623
+        Major (requiring I/O) page faults: 10690
+        Minor (reclaiming a frame) page faults: 6659331
+        Voluntary context switches: 1141184
+        Involuntary context switches: 1071168
         Swaps: 0
-        File system inputs: 27441928
-        File system outputs: 337732832
-        Socket messages sent: 0
-        Socket messages received: 0
-        Signals delivered: 0
-        Page size (bytes): 4096
-        Exit status: 0
-
-
-Another run:
-
-        Command being timed: "./populate --kv badger --valsz 128 --keys_mil 250"
-        User time (seconds): 7554.49
-        System time (seconds): 453.40
-        Percent of CPU this job got: 187%
-        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:11:03
-        Average shared text size (kbytes): 0
-        Average unshared data size (kbytes): 0
-        Average stack size (kbytes): 0
-        Average total size (kbytes): 0
-        Maximum resident set size (kbytes): 9148640
-        Average resident set size (kbytes): 0
-        Major (requiring I/O) page faults: 96
-        Minor (reclaiming a frame) page faults: 3906526
-        Voluntary context switches: 3386315
-        Involuntary context switches: 1624119
-        Swaps: 0
-        File system inputs: 30160968
-        File system outputs: 328131728
+        File system inputs: 14994928
+        File system outputs: 291238896
         Socket messages sent: 0
         Socket messages received: 0
         Signals delivered: 0
@@ -134,34 +110,47 @@ Another run:
 
 
 $ du -sh /mnt/data/badger
-40G     /mnt/data/badger
-5.5G *.sst  # LSM tree, can be kept in RAM.
+38G     /mnt/data/badger
+5.8G *.sst  # LSM tree, can be kept in RAM.
 
 Random Reads: Badger is 3.8x faster (no bloom filters in Badger yet)
 
-$ go test --bench BenchmarkReadRandom --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 30m --benchtime 3m
+$ go test --bench BenchmarkReadRandomRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 2m
+BenchmarkReadRandomRocks/read-random-rocks-2             1000000            126855 ns/op
+--- BENCH: BenchmarkReadRandomRocks/read-random-rocks-2
+        bench_test.go:92: rocks 149897 keys had valid values.
+        bench_test.go:92: rocks 150103 keys had valid values.
+        bench_test.go:92: rocks 500075 keys had valid values.
+        bench_test.go:92: rocks 499925 keys had valid values.
+PASS
+ok      github.com/dgraph-io/badger-bench       182.839s
+
+$ go test --bench BenchmarkReadRandomBadger --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 2m
+Called BenchmarkReadRandomBadger
 Replaying compact log: /mnt/data/badger/clog
 All compactions in compact log are done.
 NOT running any compactions due to DB options.
 NOT running any compactions due to DB options.
 NOT running any compactions due to DB options.
-Seeking at value pointer: {Fid:40 Len:159 Offset:482792052}
+Seeking at value pointer: {Fid:37 Len:163 Offset:1022845212}
 l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
-key=vsz=00128-k=0097023306
-BenchmarkReadRandom/badger-random-reads=250.000000-2            10000000             40108 ns/op
---- BENCH: BenchmarkReadRandom/badger-random-reads=250.000000-2
-        bench_test.go:62: badger 324642 keys had valid values.
-        bench_test.go:62: badger 324473 keys had valid values.
-        bench_test.go:62: badger 3244587 keys had valid values.
-        bench_test.go:62: badger 3245332 keys had valid values.
-BenchmarkReadRandom/rocksdb-random-reads=250.000000-2            2000000            152355 ns/op
---- BENCH: BenchmarkReadRandom/rocksdb-random-reads=250.000000-2
-        bench_test.go:77: rocks 149828 keys had valid values.
-        bench_test.go:77: rocks 150172 keys had valid values.
-        bench_test.go:77: rocks 999335 keys had valid values.
-        bench_test.go:77: rocks 1000665 keys had valid values.
+key=vsz=00128-k=0025059055
+BenchmarkReadRandomBadger/read-random-badger-2           5000000             36297 ns/op
+--- BENCH: BenchmarkReadRandomBadger/read-random-badger-2
+        bench_test.go:72: badger 324978 keys had valid values.
+        bench_test.go:72: badger 324914 keys had valid values.
+        bench_test.go:72: badger 1621919 keys had valid values.
+        bench_test.go:72: badger 1624058 keys had valid values.
+Sending signal to 0 registered with name "value-gc"
+Sending signal to 1 registered with name "writes"
+--->> Size of bloom filter: 116
+=======> Deallocating skiplist
+Level "value-gc" already got signal
+Level "writes" already got signal
+Sending signal to 0 registered with name "memtable"
 PASS
-ok      github.com/dgraph-io/badger-bench       820.758s
+ok      github.com/dgraph-io/badger-bench       239.744s
+
 
 
 ### Iteration
