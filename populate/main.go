@@ -108,12 +108,12 @@ func main() {
 
 	go http.ListenAndServe("0.0.0.0:8080", nil)
 
-	N := 10
+	N := 12
 	var wg sync.WaitGroup
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
-			entries := make([]*badger.Entry, 100)
+			entries := make([]*badger.Entry, 1000)
 			for i := 0; i < len(entries); i++ {
 				e := new(badger.Entry)
 				e.Key = make([]byte, 22)
