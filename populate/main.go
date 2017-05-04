@@ -41,7 +41,6 @@ func fillEntry(e *badger.Entry) {
 
 	rand.Read(e.Value)
 	e.Meta = 0
-	e.Offset = 0
 }
 
 var bdb *badger.KV
