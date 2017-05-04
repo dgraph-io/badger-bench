@@ -123,13 +123,16 @@ func main() {
 	var counter int64
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
+		var count int64
 		t := time.NewTicker(time.Second)
 		for {
 			select {
 			case <-t.C:
-				fmt.Printf("Write key rate per minute: %s. Total: %s\n",
+				fmt.Printf("[%04d] Write key rate per minute: %s. Total: %s\n",
+					count,
 					humanize(rc.Rate()),
 					humanize(atomic.LoadInt64(&counter)))
+				count++
 			case <-ctx.Done():
 				return
 			}
