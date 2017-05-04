@@ -44,7 +44,6 @@ func fillEntry(e *badger.Entry) {
 	e.Offset = 0
 }
 
-var ctx = context.Background()
 var bdb *badger.KV
 var rdb *store.Store
 
@@ -57,7 +56,7 @@ func writeBatch(entries []*badger.Entry) int {
 		rb.Put(e.Key, e.Value)
 	}
 	if bdb != nil {
-		y.Check(bdb.Write(ctx, entries))
+		y.Check(bdb.BatchSet(entries))
 	}
 	if rdb != nil {
 		y.Check(rdb.WriteBatch(rb))
