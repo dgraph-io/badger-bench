@@ -9,6 +9,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/trace"
@@ -16,6 +17,7 @@ import (
 	"github.com/dgraph-io/badger/badger"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
+	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
 )
 
@@ -63,6 +65,16 @@ func writeBatch(entries []*badger.Entry) int {
 	return len(entries)
 }
 
+func humanize(n int64) string {
+	if n >= 1000000 {
+		return fmt.Sprintf("%6.2fM", float64(n)/1000000.0)
+	}
+	if n >= 1000 {
+		return fmt.Sprintf("%6.2fK", float64(n)/1000.0)
+	}
+	return fmt.Sprintf("%5.2f", float64(n))
+}
+
 func main() {
 	mode := flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 	flag.Parse()
@@ -84,6 +96,7 @@ func main() {
 	}
 
 	nw := *numKeys * mil
+	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
 	// opt.MapTablesTo = table.Nothing
 	opt.Verbose = true
@@ -106,6 +119,22 @@ func main() {
 		y.Check(err)
 	}
 
+	rc := ratecounter.NewRateCounter(time.Minute)
+	var counter int64
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		t := time.NewTicker(time.Second)
+		for {
+			select {
+			case <-t.C:
+				fmt.Printf("Write key rate per minute: %s. Total: %s\n",
+					humanize(rc.Rate()),
+					humanize(atomic.LoadInt64(&counter)))
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	go http.ListenAndServe("0.0.0.0:8080", nil)
 
 	N := 12
@@ -123,17 +152,20 @@ func main() {
 
 			var written float64
 			for written < nw/float64(N) {
-				written += float64(writeBatch(entries))
-				if int(written)%100000 == 0 {
-					fmt.Printf("[%d] Written %5.2fM key-val pairs\n", proc, written/mil)
-				}
+				wrote := float64(writeBatch(entries))
+
+				wi := int64(wrote)
+				atomic.AddInt64(&counter, wi)
+				rc.Incr(wi)
+
+				written += wrote
 			}
-			fmt.Printf("[%d] Written %5.2fM key-val pairs\n", proc, written/mil)
 			wg.Done()
 		}(i)
 	}
 	// 	wg.Add(1) // Block
 	wg.Wait()
+	cancel()
 	if bdb != nil {
 		fmt.Println("closing badger")
 		bdb.Close()
@@ -142,5 +174,5 @@ func main() {
 		fmt.Println("closing rocks")
 		rdb.Close()
 	}
-	time.Sleep(10 * time.Second)
+	fmt.Printf("\nWROTE %d KEYS\n", atomic.LoadInt64(&counter))
 }
