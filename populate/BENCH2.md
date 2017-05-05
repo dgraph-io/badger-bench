@@ -321,3 +321,144 @@ l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
 PASS
 ok      github.com/dgraph-io/badger-bench       114.170s
 
+WROTE 5004000 KEYS
+        Command being timed: "./populate --kv rocksdb --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
+        User time (seconds): 1424.16
+        System time (seconds): 1397.96
+        Percent of CPU this job got: 57%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:22:21
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 1224612
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 87
+        Minor (reclaiming a frame) page faults: 6938621
+        Voluntary context switches: 4541903
+        Involuntary context switches: 1035841
+        Swaps: 0
+        File system inputs: 1141303472
+        File system outputs: 1925444544
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+WROTE 5004000 KEYS
+        Command being timed: "./populate --kv badger --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
+        User time (seconds): 368.05
+        System time (seconds): 113.57
+        Percent of CPU this job got: 116%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 6:55.01
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 2313908
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 55
+        Minor (reclaiming a frame) page faults: 6128182
+        Voluntary context switches: 2327323
+        Involuntary context switches: 206230
+        Swaps: 0
+        File system inputs: 16424
+        File system outputs: 161245240
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 3m
+BenchmarkReadRandomRocks/read-random-rocks-2            SIGQUIT: quit
+PC=0x460ed9 m=0 sigcode=0
+
+goroutine 0 [idle]:
+runtime.epollwait(0x4, 0x7ffdbcaf5ad8, 0xffffffff00000080, 0x0, 0xffffffff00000000, 0x0, 0x0, 0x0, 0x0, 0x0, ...)
+        /usr/local/go/src/runtime/sys_linux_amd64.s:560 +0x19
+runtime.netpoll(0xc420029301, 0xc420028001)
+        /usr/local/go/src/runtime/netpoll_epoll.go:67 +0x91
+runtime.findrunnable(0xc420029300, 0x0)
+        /usr/local/go/src/runtime/proc.go:2084 +0x31f
+runtime.schedule()
+        /usr/local/go/src/runtime/proc.go:2222 +0x14c
+runtime.park_m(0xc420001040)
+        /usr/local/go/src/runtime/proc.go:2285 +0xab
+runtime.mcall(0x7ffdbcaf6240)
+        /usr/local/go/src/runtime/asm_amd64.s:269 +0x5b
+*** Test killed: ran too long (11m0s).
+FAIL    github.com/dgraph-io/badger-bench       674.142s
+
+NOTE: RocksDB took too much memory when doing random lookups. So, this crash happened multiple times.
+
+$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 1m
+BenchmarkReadRandomRocks/read-random-rocks-2              300000            215171 ns/op
+--- BENCH: BenchmarkReadRandomRocks/read-random-rocks-2
+        bench_test.go:93: rocks 100391 keys had valid values.
+        bench_test.go:93: rocks 150850 keys had valid values.
+        bench_test.go:93: rocks 149150 keys had valid values.
+PASS
+ok      github.com/dgraph-io/badger-bench       121.391s
+
+$ go test -v --bench BenchmarkReadRandomBadger --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 1m
+Called BenchmarkReadRandomBadger
+Replaying compact log: /mnt/data/16kb/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:76 Len:16419 Offset:554157669}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=16384-k=0002454321
+BenchmarkReadRandomBadger/read-random-badger-2           2000000             40178 ns/op
+--- BENCH: BenchmarkReadRandomBadger/read-random-badger-2
+        bench_test.go:73: badger 315956 keys had valid values.
+        bench_test.go:73: badger 316468 keys had valid values.
+        bench_test.go:73: badger 632648 keys had valid values.
+        bench_test.go:73: badger 631790 keys had valid values.
+Sending signal to 0 registered with name "value-gc"
+Sending signal to 1 registered with name "writes"
+--->> Size of bloom filter: 116
+=======> Deallocating skiplist
+Level "writes" already got signal
+Sending signal to 0 registered with name "memtable"
+Level "value-gc" already got signal
+PASS
+ok      github.com/dgraph-io/badger-bench       123.227s
+
+$ go test -v --bench BenchmarkIterate --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 60m        
+BenchmarkIterateRocks/rocksdb-iterate-2                        1        133313688657 ns/op
+--- BENCH: BenchmarkIterateRocks/rocksdb-iterate-2
+        bench_test.go:129: [0] Counted 2000001 keys
+Replaying compact log: /mnt/data/16kb/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:76 Len:16419 Offset:554157669}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=16384-k=0002454321
+BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2                       3         475018676 ns/op
+--- BENCH: BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [1] Counted 2000001 keys
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [1] Counted 2000001 keys
+        bench_test.go:157: [2] Counted 2000001 keys
+Replaying compact log: /mnt/data/16kb/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:76 Len:16419 Offset:554157669}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=16384-k=0002454321
+....................BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2                 1        125095134637 ns/op
+--- BENCH: BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2
+        bench_test.go:188: [0] Counted 2000000 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       264.244s
+
