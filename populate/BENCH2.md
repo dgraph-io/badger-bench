@@ -428,3 +428,37 @@ Level "value-gc" already got signal
 PASS
 ok      github.com/dgraph-io/badger-bench       123.227s
 
+$ go test -v --bench BenchmarkIterate --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 60m        
+BenchmarkIterateRocks/rocksdb-iterate-2                        1        133313688657 ns/op
+--- BENCH: BenchmarkIterateRocks/rocksdb-iterate-2
+        bench_test.go:129: [0] Counted 2000001 keys
+Replaying compact log: /mnt/data/16kb/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:76 Len:16419 Offset:554157669}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=16384-k=0002454321
+BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2                       3         475018676 ns/op
+--- BENCH: BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [1] Counted 2000001 keys
+        bench_test.go:157: [0] Counted 2000001 keys
+        bench_test.go:157: [1] Counted 2000001 keys
+        bench_test.go:157: [2] Counted 2000001 keys
+Replaying compact log: /mnt/data/16kb/badger/clog
+All compactions in compact log are done.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+NOT running any compactions due to DB options.
+Seeking at value pointer: {Fid:76 Len:16419 Offset:554157669}
+l.opt.ValueGCThreshold = 0.0. Exiting runGCInLoop
+key=vsz=16384-k=0002454321
+....................BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2                 1        125095134637 ns/op
+--- BENCH: BenchmarkIterateBadgerWithValues/badger-iterate-withvals-2
+        bench_test.go:188: [0] Counted 2000000 keys
+PASS
+ok      github.com/dgraph-io/badger-bench       264.244s
+
