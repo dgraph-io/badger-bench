@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -27,7 +28,7 @@ var (
 	which     = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
-	dir       = flag.String("dir", "/mnt/data", "Base dir for writes.")
+	dir       = flag.String("dir", "", "Base dir for writes.")
 )
 
 func fillEntry(e *badger.Entry) {
@@ -103,18 +104,24 @@ func main() {
 
 	var err error
 
+	var init bool
 	if *which == "badger" || *which == "both" {
+		init = true
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
 		os.MkdirAll(*dir+"/badger", 0777)
 		bdb = badger.NewKV(&opt)
 	}
 	if *which == "rocksdb" || *which == "both" {
+		init = true
 		fmt.Println("Init Rocks")
 		os.RemoveAll(*dir + "/rocks")
 		os.MkdirAll(*dir+"/rocks", 0777)
 		rdb, err = store.NewStore(*dir + "/rocks")
 		y.Check(err)
+	}
+	if !init {
+		log.Fatalf("Invalid arguments. Unable to init any store.")
 	}
 
 	rc := ratecounter.NewRateCounter(time.Minute)
