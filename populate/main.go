@@ -23,10 +23,12 @@ import (
 const mil float64 = 1000000
 
 var (
-	which     = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
-	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
-	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
-	dir       = flag.String("dir", "/mnt/data", "Base dir for writes.")
+	which       = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
+	numKeys     = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
+	valueSize   = flag.Int("valsz", 128, "Value size in bytes.")
+	dir         = flag.String("dir", "/mnt/data", "Base dir for writes.")
+	randomness  = flag.Float64("randomness", 1.0, "Fraction of random bits in values.")
+	compression = flag.Bool("compression", true, "Compression enabled")
 )
 
 func fillEntry(e *badger.Entry) {
@@ -38,7 +40,9 @@ func fillEntry(e *badger.Entry) {
 	e.Key = e.Key[:len(key)]
 	copy(e.Key, key)
 
-	rand.Read(e.Value)
+	randomBits := int(*randomness * float64(*valueSize))
+
+	rand.Read(e.Value[:randomBits])
 	e.Meta = 0
 	e.Offset = 0
 }
@@ -90,6 +94,7 @@ func main() {
 	opt.Verbose = true
 	opt.Dir = *dir + "/badger"
 	opt.SyncWrites = false
+	opt.ValueCompression = *compression
 
 	var err error
 
