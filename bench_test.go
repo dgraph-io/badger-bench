@@ -13,6 +13,8 @@ import (
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
+
+	"github.com/bkaradzic/go-lz4"
 )
 
 var (
@@ -93,6 +95,32 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 			}
 		})
 	})
+}
+
+func BenchmarkLz4Decode64K(b *testing.B) {
+	totalSizeToDecode := 64 * 1024
+	blockSizes := [...]int{128, 1024, 8 * 1024, 64 * 1024}
+
+	blocks := make([][]byte, 0, len(blockSizes))
+
+	for _, b := range blockSizes {
+		data := make([]byte, b)
+		rand.Read(data)
+		d, err := lz4.Encode(nil, data)
+		y.Check(err)
+		blocks = append(blocks, d)
+	}
+
+	for i, bl := range blockSizes {
+		b.Run(fmt.Sprintf("decode-%d", bl), func(b *testing.B) {
+			decoded := make([]byte, 2*bl)
+			for j := 0; j < b.N; j++ {
+				for s := 0; s < totalSizeToDecode; s += bl {
+					decoded, _ = lz4.Decode(decoded, blocks[i])
+				}
+			}
+		})
+	}
 }
 
 func safecopy(dst []byte, src []byte) []byte {
