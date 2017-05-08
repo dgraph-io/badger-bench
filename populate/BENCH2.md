@@ -346,6 +346,9 @@ WROTE 5004000 KEYS
         Page size (bytes): 4096
         Exit status: 0
 
+$ du -sh rocks
+52G
+
 WROTE 5004000 KEYS
         Command being timed: "./populate --kv badger --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
         User time (seconds): 368.05
@@ -370,6 +373,11 @@ WROTE 5004000 KEYS
         Signals delivered: 0
         Page size (bytes): 4096
         Exit status: 0
+
+$ du -shc badger/*.sst
+105M
+$ du -shc badger/*.vlog
+77G
 
 $ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 3m
 BenchmarkReadRandomRocks/read-random-rocks-2            SIGQUIT: quit
