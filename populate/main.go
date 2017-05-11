@@ -56,7 +56,10 @@ func writeBatch(entries []*badger.Entry) int {
 		rb.Put(e.Key, e.Value)
 	}
 	if bdb != nil {
-		y.Check(bdb.BatchSet(entries))
+		bdb.BatchSet(entries)
+		for _, e := range entries {
+			y.Check(e.Error)
+		}
 	}
 	if rdb != nil {
 		y.Check(rdb.WriteBatch(rb))
