@@ -498,3 +498,29 @@ WROTE 1000008000 KEYS
         Page size (bytes): 4096
         Exit status: 0
 
+[11010] Write key rate per minute:   5.03M. Total: 999.91M
+Command terminated by signal 9  <---------------------------- Strange
+        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir /mnt/data/16"
+        User time (seconds): 20732.95
+        System time (seconds): 662.04
+        Percent of CPU this job got: 193%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 3:04:04
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 14910100
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 107693
+        Minor (reclaiming a frame) page faults: 18716683
+        Voluntary context switches: 4845155
+        Involuntary context switches: 3718926
+        Swaps: 0
+        File system inputs: 489687344
+        File system outputs: 926333912
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
