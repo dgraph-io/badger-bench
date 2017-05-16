@@ -18,7 +18,7 @@ var (
 	dir           = flag.String("dir", "datafiles", "File to read from")
 	numSerial     = flag.Int64("sreads", 0, "Number of serial random reads")
 	numParallel   = flag.Int64("preads", 2000000, "Number of parallel random reads")
-	numGoroutines = flag.Int("numParallel", 8, "Number of go-routines")
+	numGoroutines = flag.Int("jobs", 8, "Number of Goroutines")
 )
 
 var readSize int64 = 4 << 10
@@ -113,6 +113,8 @@ func Conc3(fList []*os.File, maxFileSize int64) {
 }
 
 func main() {
+	flag.Parse()
+
 	var flist []*os.File
 	var maxFileSize int64
 	getFile := func(path string, info os.FileInfo, err error) error {
