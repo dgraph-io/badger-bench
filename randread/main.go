@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,16 +17,17 @@ import (
 
 var (
 	dir           = flag.String("dir", "datafiles", "File to read from")
-	numSerial     = flag.Int64("sreads", 0, "Number of serial random reads")
-	numParallel   = flag.Int64("preads", 2000000, "Number of parallel random reads")
+	numReads      = flag.Int64("num", 2000000, "Number of reads")
+	mode          = flag.Int("mode", 1, "0 = serial, 1 = parallel, 2 = parallel via channel")
 	numGoroutines = flag.Int("jobs", 8, "Number of Goroutines")
+	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
 )
 
 var readSize int64 = 4 << 10
 
-func getIndices(flist []*os.File, maxFileSize int64) (*os.File, int64) {
-	fidx := rand.Intn(len(flist))
-	iidx := rand.Int63n(maxFileSize - readSize)
+func getIndices(r *rand.Rand, flist []*os.File, maxFileSize int64) (*os.File, int64) {
+	fidx := r.Intn(len(flist))
+	iidx := r.Int63n(maxFileSize - readSize)
 	return flist[fidx], iidx
 }
 
@@ -34,9 +36,9 @@ func Serial(fList []*os.File, maxFileSize int64) {
 	var i int64 = 0
 	b := make([]byte, int(readSize))
 
-	rand.Seed(int64(time.Now().Second()))
-	for ; i < *numSerial; i++ {
-		fd, offset := getIndices(fList, maxFileSize)
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for ; i < *numReads; i++ {
+		fd, offset := getIndices(r, fList, maxFileSize)
 		_, err := fd.ReadAt(b, offset)
 		if err != nil {
 			log.Fatalf("Error reading file: %v", err)
@@ -45,7 +47,8 @@ func Serial(fList []*os.File, maxFileSize int64) {
 			log.Printf("Finished %v reads in serial", i)
 		}
 	}
-	fmt.Println("Serial: Number of random reads per second: ", float64(*numSerial)/time.Since(startT).Seconds())
+	fmt.Println("Serial: Number of random reads per second: ",
+		float64(*numReads)/time.Since(startT).Seconds())
 	fmt.Println("Serial: Time Taken: ", time.Since(startT))
 }
 
@@ -54,13 +57,13 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 	var i int64
 	var wg sync.WaitGroup
 
-	rand.Seed(int64(time.Now().Second()))
 	for k := 0; k < *numGoroutines; k++ {
 		wg.Add(1)
 		go func() {
 			b := make([]byte, int(readSize))
-			for atomic.LoadInt64(&i) < *numParallel {
-				fd, offset := getIndices(fList, maxFileSize)
+			r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			for atomic.LoadInt64(&i) < *numReads {
+				fd, offset := getIndices(r, fList, maxFileSize)
 				_, err := fd.ReadAt(b, offset)
 				if err != nil {
 					log.Fatalf("Error reading file: %v", err)
@@ -71,7 +74,8 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 		}()
 	}
 	wg.Wait()
-	fmt.Println("Concurrent 2: Number of random reads per second: ", float64(*numParallel)/time.Since(startT).Seconds())
+	fmt.Println("Concurrent 2: Number of random reads per second: ",
+		float64(*numReads)/time.Since(startT).Seconds())
 	fmt.Println("Concurrent 2: Time Taken: ", time.Since(startT))
 }
 
@@ -84,9 +88,10 @@ func Conc3(fList []*os.File, maxFileSize int64) {
 	ch := make(chan req, 10000)
 	go func() {
 		var i int64
-		for i = 0; i < *numParallel; i++ {
+		rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+		for i = 0; i < *numReads; i++ {
 			var r req
-			r.fd, r.offset = getIndices(fList, maxFileSize)
+			r.fd, r.offset = getIndices(rd, fList, maxFileSize)
 			ch <- r
 		}
 		close(ch)
@@ -108,7 +113,8 @@ func Conc3(fList []*os.File, maxFileSize int64) {
 		}()
 	}
 	wg.Wait()
-	fmt.Println("Concurrent 3: Number of random reads per second: ", float64(*numParallel)/time.Since(startT).Seconds())
+	fmt.Println("Concurrent 3: Number of random reads per second: ",
+		float64(*numReads)/time.Since(startT).Seconds())
 	fmt.Println("Concurrent 3: Time Taken: ", time.Since(startT))
 }
 
@@ -141,7 +147,21 @@ func main() {
 		log.Fatalf("Must have files already created")
 	}
 
-	Serial(flist, maxFileSize)
-	Conc2(flist, maxFileSize)
-	Conc3(flist, maxFileSize)
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	switch *mode {
+	case 0:
+		Serial(flist, maxFileSize)
+	case 1:
+		Conc2(flist, maxFileSize)
+	case 2:
+		Conc3(flist, maxFileSize)
+	}
 }
