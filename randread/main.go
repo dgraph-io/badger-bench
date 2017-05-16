@@ -7,12 +7,12 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/dgraph-io/badger/y"
+	"github.com/pkg/profile"
 )
 
 var (
@@ -20,7 +20,7 @@ var (
 	numReads      = flag.Int64("num", 2000000, "Number of reads")
 	mode          = flag.Int("mode", 1, "0 = serial, 1 = parallel, 2 = parallel via channel")
 	numGoroutines = flag.Int("jobs", 8, "Number of Goroutines")
-	cpuprofile    = flag.String("cpuprofile", "", "write cpu profile to file")
+	profilemode   = flag.String("profile.mode", "", "Enable profiling mode, one of [cpu, mem, mutex, block]")
 )
 
 var readSize int64 = 4 << 10
@@ -147,13 +147,15 @@ func main() {
 		log.Fatalf("Must have files already created")
 	}
 
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
+	switch *profilemode {
+	case "cpu":
+		defer profile.Start(profile.CPUProfile).Stop()
+	case "mem":
+		defer profile.Start(profile.MemProfile).Stop()
+	case "mutex":
+		defer profile.Start(profile.MutexProfile).Stop()
+	case "block":
+		defer profile.Start(profile.BlockProfile).Stop()
 	}
 
 	switch *mode {
