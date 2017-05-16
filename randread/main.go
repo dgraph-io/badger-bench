@@ -62,13 +62,12 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 		go func() {
 			b := make([]byte, int(readSize))
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			for atomic.LoadInt64(&i) < *numReads {
+			for atomic.AddInt64(&i, 1) <= *numReads {
 				fd, offset := getIndices(r, fList, maxFileSize)
 				_, err := fd.ReadAt(b, offset)
 				if err != nil {
 					log.Fatalf("Error reading file: %v", err)
 				}
-				atomic.AddInt64(&i, 1)
 			}
 			wg.Done()
 		}()
