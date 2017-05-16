@@ -15,30 +15,29 @@ import (
 )
 
 var (
-	dir         = flag.String("dir", "datafiles", "File to read from")
-	numSRead    = flag.Int64("numSread", 100000, "Number of random reads")
-	numPRead    = flag.Int64("numPread", 2160000, "Number of random reads")
-	numParallel = flag.Int("numParallel", 8, "Number of go-routines")
+	dir           = flag.String("dir", "datafiles", "File to read from")
+	numSerial     = flag.Int64("sreads", 0, "Number of serial random reads")
+	numParallel   = flag.Int64("preads", 2000000, "Number of parallel random reads")
+	numGoroutines = flag.Int("numParallel", 8, "Number of go-routines")
 )
 
-var maxAddr int64 = 32 << 30
-var fileSize int64 = 4 << 30
 var readSize int64 = 4 << 10
 
-func Serial(fList []*os.File) {
+func getIndices(flist []*os.File, maxFileSize int64) (*os.File, int64) {
+	fidx := rand.Intn(len(flist))
+	iidx := rand.Int63n(maxFileSize - readSize)
+	return flist[fidx], iidx
+}
+
+func Serial(fList []*os.File, maxFileSize int64) {
 	startT := time.Now()
 	var i int64 = 0
 	b := make([]byte, int(readSize))
 
 	rand.Seed(int64(time.Now().Second()))
-	for ; i < *numSRead; i++ {
-		idx := rand.Int63n(maxAddr)
-		fidx := idx / fileSize
-		iidx := idx % fileSize
-		if iidx >= fileSize-readSize {
-			iidx -= readSize
-		}
-		_, err := fList[fidx].ReadAt(b, iidx)
+	for ; i < *numSerial; i++ {
+		fd, offset := getIndices(fList, maxFileSize)
+		_, err := fd.ReadAt(b, offset)
 		if err != nil {
 			log.Fatalf("Error reading file: %v", err)
 		}
@@ -46,63 +45,23 @@ func Serial(fList []*os.File) {
 			log.Printf("Finished %v reads in serial", i)
 		}
 	}
-	fmt.Println("Serial: Number of random reads per second: ", float64(*numSRead)/time.Since(startT).Seconds())
+	fmt.Println("Serial: Number of random reads per second: ", float64(*numSerial)/time.Since(startT).Seconds())
 	fmt.Println("Serial: Time Taken: ", time.Since(startT))
 }
 
-func Conc1(fList []*os.File) {
-	startT := time.Now()
-	var i int64
-	var j int64
-	b := make([]byte, int(readSize))
-	var wg sync.WaitGroup
-
-	rand.Seed(int64(time.Now().Second()))
-	for i < *numPRead {
-		if atomic.LoadInt64(&j) < int64(*numParallel) {
-			wg.Add(1)
-			atomic.AddInt64(&j, 1)
-			go func() {
-				idx := rand.Int63n(maxAddr)
-				fidx := idx / fileSize
-				iidx := idx % fileSize
-				if iidx >= fileSize-readSize {
-					iidx -= readSize
-				}
-				// We use shared 'b' but it should be okay
-				_, err := fList[fidx].ReadAt(b, iidx)
-				if err != nil {
-					log.Fatalf("Error reading file: %v", err)
-				}
-				atomic.AddInt64(&i, 1)
-				atomic.AddInt64(&j, -1)
-				wg.Done()
-			}()
-		}
-	}
-	wg.Wait()
-	fmt.Println("Concurrent 1: Number of random reads per second: ", float64(*numPRead)/time.Since(startT).Seconds())
-	fmt.Println("Concurrent 1: Time Taken: ", time.Since(startT))
-}
-
-func Conc2(fList []*os.File) {
+func Conc2(fList []*os.File, maxFileSize int64) {
 	startT := time.Now()
 	var i int64
 	var wg sync.WaitGroup
 
 	rand.Seed(int64(time.Now().Second()))
-	for k := 0; k < *numParallel; k++ {
+	for k := 0; k < *numGoroutines; k++ {
 		wg.Add(1)
 		go func() {
 			b := make([]byte, int(readSize))
-			for atomic.LoadInt64(&i) < *numPRead {
-				idx := rand.Int63n(maxAddr)
-				fidx := idx / fileSize
-				iidx := idx % fileSize
-				if iidx >= fileSize-readSize {
-					iidx -= readSize
-				}
-				_, err := fList[fidx].ReadAt(b, iidx)
+			for atomic.LoadInt64(&i) < *numParallel {
+				fd, offset := getIndices(fList, maxFileSize)
+				_, err := fd.ReadAt(b, offset)
 				if err != nil {
 					log.Fatalf("Error reading file: %v", err)
 				}
@@ -112,42 +71,51 @@ func Conc2(fList []*os.File) {
 		}()
 	}
 	wg.Wait()
-	fmt.Println("Concurrent 2: Number of random reads per second: ", float64(*numPRead)/time.Since(startT).Seconds())
+	fmt.Println("Concurrent 2: Number of random reads per second: ", float64(*numParallel)/time.Since(startT).Seconds())
 	fmt.Println("Concurrent 2: Time Taken: ", time.Since(startT))
 }
 
-func Conc3(fList []*os.File, ch chan int64) {
-	startT := time.Now()
-	var i int64
-	var wg sync.WaitGroup
+type req struct {
+	fd     *os.File
+	offset int64
+}
 
-	for k := 0; k < *numParallel; k++ {
+func Conc3(fList []*os.File, maxFileSize int64) {
+	ch := make(chan req, 10000)
+	go func() {
+		var i int64
+		for i = 0; i < *numParallel; i++ {
+			var r req
+			r.fd, r.offset = getIndices(fList, maxFileSize)
+			ch <- r
+		}
+		close(ch)
+	}()
+
+	startT := time.Now()
+	var wg sync.WaitGroup
+	for k := 0; k < *numGoroutines; k++ {
 		wg.Add(1)
 		go func() {
 			b := make([]byte, int(readSize))
-			for idx := range ch {
-				fidx := idx / fileSize
-				iidx := idx % fileSize
-				if iidx >= fileSize-readSize {
-					iidx -= readSize
-				}
-				_, err := fList[fidx].ReadAt(b, iidx)
+			for req := range ch {
+				_, err := req.fd.ReadAt(b, req.offset)
 				if err != nil {
 					log.Fatalf("Error reading file: %v", err)
 				}
-				atomic.AddInt64(&i, 1)
 			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
-	fmt.Println("Concurrent 3: Number of random reads per second: ", float64(*numPRead)/time.Since(startT).Seconds())
+	fmt.Println("Concurrent 3: Number of random reads per second: ", float64(*numParallel)/time.Since(startT).Seconds())
 	fmt.Println("Concurrent 3: Time Taken: ", time.Since(startT))
 }
 
 func main() {
-	var fList []*os.File
-	printFile := func(path string, info os.FileInfo, err error) error {
+	var flist []*os.File
+	var maxFileSize int64
+	getFile := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			log.Print(err)
 			return nil
@@ -156,33 +124,22 @@ func main() {
 		if !info.IsDir() {
 			f, err := os.Open(path)
 			y.AssertTruef(err == nil, "Error opening file: %v", path)
-			fList = append(fList, f)
+			flist = append(flist, f)
 			log.Println("Opened file:", path, "Size:", info.Size()/(1<<20), "MB")
+			maxFileSize = info.Size()
 		}
 		return nil
 	}
 
-	err := filepath.Walk(*dir, printFile)
+	err := filepath.Walk(*dir, getFile)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	//	Serial(fList)
-	//Conc1(fList)
-	Conc2(fList)
-
-	rand.Seed(int64(time.Now().Second()))
-	ch := make(chan int64, 10000)
-	var wg sync.WaitGroup
-	go func() {
-		wg.Add(1)
-		Conc3(fList, ch)
-		wg.Done()
-	}()
-	var i int64 = 0
-	for ; i < *numPRead; i++ {
-		idx := rand.Int63n(maxAddr)
-		ch <- idx
+	if len(flist) == 0 {
+		log.Fatalf("Must have files already created")
 	}
-	close(ch)
-	wg.Wait()
+
+	Serial(flist, maxFileSize)
+	Conc2(flist, maxFileSize)
+	Conc3(flist, maxFileSize)
 }
