@@ -156,6 +156,8 @@ func main() {
 		defer profile.Start(profile.MutexProfile).Stop()
 	case "block":
 		defer profile.Start(profile.BlockProfile).Stop()
+	case "trace":
+		defer profile.Start(profile.TraceProfile).Stop()
 	}
 
 	switch *mode {
