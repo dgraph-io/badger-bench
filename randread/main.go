@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/dgraph-io/badger/y"
@@ -54,15 +53,17 @@ func Serial(fList []*os.File, maxFileSize int64) {
 
 func Conc2(fList []*os.File, maxFileSize int64) {
 	startT := time.Now()
-	var i int64
 	var wg sync.WaitGroup
+	countPerGo := *numReads / int64(*numGoroutines)
+	fmt.Printf("Concurrent mode: Reads per goroutine: %d\n", countPerGo)
 
 	for k := 0; k < *numGoroutines; k++ {
 		wg.Add(1)
 		go func() {
 			b := make([]byte, int(readSize))
 			r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			for atomic.AddInt64(&i, 1) <= *numReads {
+			var i int64
+			for ; i < countPerGo; i++ {
 				fd, offset := getIndices(r, fList, maxFileSize)
 				_, err := fd.ReadAt(b, offset)
 				if err != nil {
