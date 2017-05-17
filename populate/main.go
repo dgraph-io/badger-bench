@@ -29,6 +29,7 @@ var (
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 	dir       = flag.String("dir", "", "Base dir for writes.")
+	mode      = flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 )
 
 func fillEntry(e *badger.Entry) {
@@ -78,7 +79,6 @@ func humanize(n int64) string {
 }
 
 func main() {
-	mode := flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 	flag.Parse()
 	switch *mode {
 	case "cpu":
