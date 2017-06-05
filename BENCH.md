@@ -524,3 +524,30 @@ Command terminated by signal 9  <---------------------------- Strange
         Page size (bytes): 4096
         Exit status: 0
 
+Another run of Badger.
+
+WROTE 1000008000 KEYS
+        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir /mnt/data/16"
+        User time (seconds): 21221.83
+        System time (seconds): 707.07
+        Percent of CPU this job got: 192%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 3:10:01
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 14773368
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 53700
+        Minor (reclaiming a frame) page faults: 19758570
+        Voluntary context switches: 7890576
+        Involuntary context switches: 4228086
+        Swaps: 0
+        File system inputs: 478626176
+        File system outputs: 963384272
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
