@@ -19,7 +19,7 @@ var (
 	numReads      = flag.Int64("num", 2000000, "Number of reads")
 	mode          = flag.Int("mode", 1, "0 = serial, 1 = parallel, 2 = parallel via channel")
 	numGoroutines = flag.Int("jobs", 8, "Number of Goroutines")
-	profilemode   = flag.String("profile.mode", "", "Enable profiling mode, one of [cpu, mem, mutex, block]")
+	profilemode   = flag.String("profile.mode", "", "Enable profiling mode, one of [cpu, mem, mutex, block, trace]")
 )
 
 var readSize int64 = 4 << 10
