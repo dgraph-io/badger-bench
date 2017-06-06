@@ -101,7 +101,6 @@ func main() {
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
 	// opt.MapTablesTo = table.Nothing
-	opt.Verbose = true
 	opt.Dir = *dir + "/badger"
 	opt.SyncWrites = false
 
@@ -113,7 +112,10 @@ func main() {
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
 		os.MkdirAll(*dir+"/badger", 0777)
-		bdb = badger.NewKV(&opt)
+		bdb, err = badger.NewKV(&opt)
+		if err != nil {
+			log.Fatalf("while opening badger: %v", err)
+		}
 	}
 	if *which == "rocksdb" || *which == "both" {
 		init = true
@@ -146,7 +148,11 @@ func main() {
 			}
 		}
 	}()
-	go http.ListenAndServe("0.0.0.0:8080", nil)
+	go func() {
+		if err := http.ListenAndServe("0.0.0.0:8081", nil); err != nil {
+			log.Fatalf("While opening http. Error: %v", err)
+		}
+	}()
 
 	N := 12
 	var wg sync.WaitGroup

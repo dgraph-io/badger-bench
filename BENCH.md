@@ -524,3 +524,5 @@ Command terminated by signal 9  <---------------------------- Strange
         Page size (bytes): 4096
         Exit status: 0
 
+
+Update: with latest changes to compaction, 250K keys are written in 37m.
