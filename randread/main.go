@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/codahale/hdrhistogram"
 	"github.com/dgraph-io/badger/y"
 	"github.com/pkg/profile"
 )
@@ -56,6 +57,7 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 	var wg sync.WaitGroup
 	countPerGo := *numReads / int64(*numGoroutines)
 	fmt.Printf("Concurrent mode: Reads per goroutine: %d\n", countPerGo)
+	hist := hdrhistogram.New(1, 1000000, 4) // in microseconds.
 
 	for k := 0; k < *numGoroutines; k++ {
 		wg.Add(1)
@@ -65,9 +67,17 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 			var i int64
 			for ; i < countPerGo; i++ {
 				fd, offset := getIndices(r, fList, maxFileSize)
+				start := time.Now()
 				_, err := fd.ReadAt(b, offset)
 				if err != nil {
 					log.Fatalf("Error reading file: %v", err)
+				}
+				dur := time.Since(start).Nanoseconds() / 1000
+				if dur > 1000000 {
+					dur = 1000000
+				}
+				if err = hist.RecordValue(dur); err != nil {
+					log.Fatalf("Unable to record hist: %v", err)
 				}
 			}
 			wg.Done()
@@ -77,45 +87,12 @@ func Conc2(fList []*os.File, maxFileSize int64) {
 	fmt.Println("Concurrent 2: Number of random reads per second: ",
 		float64(*numReads)/time.Since(startT).Seconds())
 	fmt.Println("Concurrent 2: Time Taken: ", time.Since(startT))
-}
-
-type req struct {
-	fd     *os.File
-	offset int64
-}
-
-func Conc3(fList []*os.File, maxFileSize int64) {
-	ch := make(chan req, 10000)
-	go func() {
-		var i int64
-		rd := rand.New(rand.NewSource(time.Now().UnixNano()))
-		for i = 0; i < *numReads; i++ {
-			var r req
-			r.fd, r.offset = getIndices(rd, fList, maxFileSize)
-			ch <- r
-		}
-		close(ch)
-	}()
-
-	startT := time.Now()
-	var wg sync.WaitGroup
-	for k := 0; k < *numGoroutines; k++ {
-		wg.Add(1)
-		go func() {
-			b := make([]byte, int(readSize))
-			for req := range ch {
-				_, err := req.fd.ReadAt(b, req.offset)
-				if err != nil {
-					log.Fatalf("Error reading file: %v", err)
-				}
-			}
-			wg.Done()
-		}()
+	total := float64(hist.TotalCount())
+	fmt.Println("Total count by hist", total)
+	for _, b := range hist.CumulativeDistribution() {
+		fmt.Printf("[%f] %d\n", b.Quantile, b.ValueAt)
 	}
-	wg.Wait()
-	fmt.Println("Concurrent 3: Number of random reads per second: ",
-		float64(*numReads)/time.Since(startT).Seconds())
-	fmt.Println("Concurrent 3: Time Taken: ", time.Since(startT))
+	fmt.Printf("=> [0.9] %d\n", hist.ValueAtQuantile(90.0))
 }
 
 func main() {
@@ -165,7 +142,7 @@ func main() {
 		Serial(flist, maxFileSize)
 	case 1:
 		Conc2(flist, maxFileSize)
-	case 2:
-		Conc3(flist, maxFileSize)
+	default:
+		log.Fatalf("Unknown mode")
 	}
 }
