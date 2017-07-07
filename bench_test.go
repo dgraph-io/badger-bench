@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
-	"github.com/dgraph-io/dgraph/store"
 )
 
 var (
