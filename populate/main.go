@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/net/trace"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/paulbellamy/ratecounter"
@@ -101,8 +101,8 @@ func main() {
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
 	// opt.MapTablesTo = table.Nothing
-	opt.Verbose = true
 	opt.Dir = *dir + "/badger"
+	opt.ValueDir = opt.Dir
 	opt.SyncWrites = false
 
 	var err error
@@ -113,7 +113,8 @@ func main() {
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
 		os.MkdirAll(*dir+"/badger", 0777)
-		bdb = badger.NewKV(&opt)
+		bdb, err = badger.NewKV(&opt)
+		y.Check(err)
 	}
 	if *which == "rocksdb" || *which == "both" {
 		init = true
