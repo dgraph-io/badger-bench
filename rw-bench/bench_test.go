@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	numKeys   = flag.Int("keys_mil", 1, "How many million keys to write.")
+	numKeys   = flag.Int("keys_mil", 3, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 1024, "Value size in bytes.")
 	mil       = 1000000
 )
