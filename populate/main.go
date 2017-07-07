@@ -15,7 +15,7 @@ import (
 
 	"golang.org/x/net/trace"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/dgraph/store"
 	"github.com/paulbellamy/ratecounter"
@@ -102,6 +102,7 @@ func main() {
 	opt := badger.DefaultOptions
 	// opt.MapTablesTo = table.Nothing
 	opt.Dir = *dir + "/badger"
+	opt.ValueDir = opt.Dir
 	opt.SyncWrites = false
 
 	var err error

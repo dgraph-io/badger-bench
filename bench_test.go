@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/dgraph-io/badger/badger"
+	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
-	"github.com/dgraph-io/dgraph/store"
 )
 
 var (
@@ -25,11 +25,12 @@ var (
 const Mi int = 1000000
 const Mf float64 = 1000000
 
-func getBadger() *badger.KV {
+func getBadger() (*badger.KV, error) {
 	opt := badger.DefaultOptions
 	opt.MapTablesTo = table.LoadToRAM
-	opt.Verbose = false
 	opt.Dir = *flagDir + "/badger"
+	opt.ValueDir = opt.Dir
+	fmt.Println(opt.Dir)
 	opt.DoNotCompact = true
 	opt.ValueGCThreshold = 0.0
 	return badger.NewKV(&opt)
@@ -57,7 +58,8 @@ func print(count int) {
 
 func BenchmarkReadRandomBadger(b *testing.B) {
 	fmt.Println("Called BenchmarkReadRandomBadger")
-	bdb := getBadger()
+	bdb, err := getBadger()
+	y.Check(err)
 	defer bdb.Close()
 
 	b.Run("read-random-badger", func(b *testing.B) {
@@ -65,7 +67,8 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			var count int
 			for pb.Next() {
 				key := newKey()
-				if val, _ := bdb.Get(key); val != nil {
+				var val badger.KVItem
+				if bdb.Get(key, &val); val.Value() != nil {
 					count++
 				}
 			}
@@ -132,7 +135,8 @@ func BenchmarkIterateRocks(b *testing.B) {
 }
 
 func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
-	bdb := getBadger()
+	bdb, err := getBadger()
+	y.Check(err)
 	k := make([]byte, 1024)
 	b.ResetTimer()
 
@@ -160,7 +164,8 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 }
 
 func BenchmarkIterateBadgerWithValues(b *testing.B) {
-	bdb := getBadger()
+	bdb, err := getBadger()
+	y.Check(err)
 	k := make([]byte, 1024)
 	v := make([]byte, Mi)
 	b.ResetTimer()
