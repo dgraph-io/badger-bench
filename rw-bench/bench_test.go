@@ -75,6 +75,7 @@ func TestPutAndIterate(t *testing.T) {
 	rb := createEntries(entries)
 
 	fmt.Println("Value size:", *valueSize)
+	fmt.Println("RocksDB:")
 	rstart := time.Now()
 	y.Check(rocks.WriteBatch(rb))
 	var count int
@@ -85,11 +86,12 @@ func TestPutAndIterate(t *testing.T) {
 		count++
 	}
 	fmt.Println("Num unique keys:", count)
-	fmt.Println("rocks iteration time: ", time.Since(ristart))
-	fmt.Println("rocks time: ", time.Since(rstart))
+	fmt.Println("Iteration time: ", time.Since(ristart))
+	fmt.Println("Total time: ", time.Since(rstart))
 	rb.Destroy()
 	rocks.Close()
 
+	fmt.Println("Badger:")
 	bstart := time.Now()
 	y.Check(bdg.BatchSet(entries))
 	iopt := badger.IteratorOptions{}
@@ -103,7 +105,7 @@ func TestPutAndIterate(t *testing.T) {
 		count++
 	}
 	fmt.Println("Num unique keys:", count)
-	fmt.Println("badger iteration time: ", time.Since(bistart))
-	fmt.Println("badger time: ", time.Since(bstart))
+	fmt.Println("Iteration time: ", time.Since(bistart))
+	fmt.Println("Total time: ", time.Since(bstart))
 	bdg.Close()
 }
