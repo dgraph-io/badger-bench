@@ -92,9 +92,6 @@ func TestPutAndIterate(t *testing.T) {
 
 	bstart := time.Now()
 	y.Check(bdg.BatchSet(entries))
-	for _, e := range entries {
-		y.Check(e.Error)
-	}
 	iopt := badger.IteratorOptions{}
 	bistart := time.Now()
 	iopt.FetchValues = false
