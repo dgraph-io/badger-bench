@@ -17,7 +17,7 @@ import (
 
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/y"
-	"github.com/dgraph-io/dgraph/store"
+	"github.com/dgraph-io/badger-bench/store"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
 )
