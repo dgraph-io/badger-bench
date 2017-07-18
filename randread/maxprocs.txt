@@ -1,0 +1,74 @@
+With fio
+$ fio --name=randread --ioengine=libaio --iodepth=32 --rw=randread --bs=4k --direct=0 --size=2G --numjobs=16 --runtime=240 --group_reporting
+
+Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+Average:         xvda      0.09      4.57      0.71     59.20      0.00      0.00      0.00      0.00
+Average:      nvme0n1 118063.07 944503.71      0.86      8.00     12.75      0.11      0.01    100.36
+
+
+With Go (default GOMAXPROCS, should be 4 because 4 core machine)
+Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+Average:         xvda      1.27     12.00      4.76     13.19      0.00      0.21      0.21      0.03
+Average:      nvme0n1  57501.74 548921.95      0.43      9.55      6.43      0.11      0.02     99.76
+
+With Go, GOMAXPROCS=64
+Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+Average:         xvda      0.11      0.17      3.30     32.00      0.00      0.80      0.80      0.01
+Average:      nvme0n1 104680.17 981817.39      0.00      9.38     12.82      0.12      0.01    100.04
+
+With Go, GOMAXPROCS=128
+Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
+Average:         xvda      0.40      0.32      5.92     15.60      0.00      0.20      0.20      0.01
+Average:      nvme0n1 105601.16 989440.35      0.00      9.37     12.79      0.12      0.01    100.04
+
+
+With GOMAXPROCS=32
+        Command being timed: "./randread --dir /mnt/data/fio --mode 1 --seconds 60"
+        User time (seconds): 23.34
+        System time (seconds): 100.91
+        Percent of CPU this job got: 207%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:00.00
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 3820
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 9
+        Minor (reclaiming a frame) page faults: 416
+        Voluntary context switches: 2958129
+        Involuntary context switches: 2525
+        Swaps: 0
+        File system inputs: 59343840
+        File system outputs: 0
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
+With GOMAXPROCS=128
+        Command being timed: "./randread --dir /mnt/data/fio --mode 1 --seconds 60"
+        User time (seconds): 21.59
+        System time (seconds): 104.34
+        Percent of CPU this job got: 209%
+        Elapsed (wall clock) time (h:mm:ss or m:ss): 1:00.00
+        Average shared text size (kbytes): 0
+        Average unshared data size (kbytes): 0
+        Average stack size (kbytes): 0
+        Average total size (kbytes): 0
+        Maximum resident set size (kbytes): 3968
+        Average resident set size (kbytes): 0
+        Major (requiring I/O) page faults: 11
+        Minor (reclaiming a frame) page faults: 590
+        Voluntary context switches: 2956871
+        Involuntary context switches: 2591
+        Swaps: 0
+        File system inputs: 59264616
+        File system outputs: 0
+        Socket messages sent: 0
+        Socket messages received: 0
+        Signals delivered: 0
+        Page size (bytes): 4096
+        Exit status: 0
+
