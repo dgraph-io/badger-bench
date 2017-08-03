@@ -15,9 +15,10 @@ import (
 
 	"golang.org/x/net/trace"
 
+	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/y"
 	"github.com/dgraph-io/badger-bench/store"
+	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
 )
@@ -25,7 +26,7 @@ import (
 const mil float64 = 1000000
 
 var (
-	which     = flag.String("kv", "both", "Which KV store to use. Options: both, badger, rocksdb")
+	which     = flag.String("kv", "all", "Which KV store to use. Options: all, badger, rocksdb, lmdb")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 	dir       = flag.String("dir", "", "Base dir for writes.")
@@ -47,6 +48,7 @@ func fillEntry(e *badger.Entry) {
 
 var bdb *badger.KV
 var rdb *store.Store
+var lmdbEnv *lmdb.Env
 
 func writeBatch(entries []*badger.Entry) int {
 	rb := rdb.NewWriteBatch()
@@ -56,15 +58,23 @@ func writeBatch(entries []*badger.Entry) int {
 		fillEntry(e)
 		rb.Put(e.Key, e.Value)
 	}
+
 	if bdb != nil {
 		bdb.BatchSet(entries)
 		for _, e := range entries {
 			y.Check(e.Error)
 		}
 	}
+
 	if rdb != nil {
 		y.Check(rdb.WriteBatch(rb))
 	}
+
+	if lmdbEnv != nil {
+		// TODO write entries as part of a txn
+		// see https://github.com/rvagg/lmdb/blob/master/src/database.cc#L208
+	}
+
 	return len(entries)
 }
 
@@ -108,7 +118,8 @@ func main() {
 	var err error
 
 	var init bool
-	if *which == "badger" || *which == "both" {
+
+	if *which == "badger" || *which == "all" {
 		init = true
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
@@ -118,7 +129,8 @@ func main() {
 			log.Fatalf("while opening badger: %v", err)
 		}
 	}
-	if *which == "rocksdb" || *which == "both" {
+
+	if *which == "rocksdb" || *which == "all" {
 		init = true
 		fmt.Println("Init Rocks")
 		os.RemoveAll(*dir + "/rocks")
@@ -126,6 +138,24 @@ func main() {
 		rdb, err = store.NewStore(*dir + "/rocks")
 		y.Check(err)
 	}
+
+	if *which == "lmdb" || *which == "all" {
+		init = true
+		fmt.Println("Init lmdb")
+		os.RemoveAll(*dir + "/lmdb")
+		os.MkdirAll(*dir+"/lmdb", 0777)
+
+		lmdbEnv, err = lmdb.NewEnv()
+		y.Check(err)
+		err = lmdbEnv.SetMaxDBs(1)
+		y.Check(err)
+		err = lmdbEnv.SetMapSize(1 << 36) // ~68Gb
+		y.Check(err)
+
+		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
+		y.Check(err)
+	}
+
 	if !init {
 		log.Fatalf("Invalid arguments. Unable to init any store.")
 	}
@@ -184,13 +214,21 @@ func main() {
 	// 	wg.Add(1) // Block
 	wg.Wait()
 	cancel()
+
 	if bdb != nil {
 		fmt.Println("closing badger")
 		bdb.Close()
 	}
+
 	if rdb != nil {
 		fmt.Println("closing rocks")
 		rdb.Close()
 	}
+
+	if lmdbEnv != nil {
+		fmt.Println("closing lmdb")
+		lmdbEnv.Close()
+	}
+
 	fmt.Printf("\nWROTE %d KEYS\n", atomic.LoadInt64(&counter))
 }
