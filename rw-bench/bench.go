@@ -68,7 +68,6 @@ func main() {
 	opt.Dir = "tmp/badger"
 	opt.ValueDir = opt.Dir
 	opt.SyncWrites = false
-	opt.ValueCompressionMinSize = 10000
 
 	var err error
 	y.Check(os.RemoveAll("tmp/badger"))
