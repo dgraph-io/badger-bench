@@ -26,7 +26,7 @@ import (
 const mil float64 = 1000000
 
 var (
-	which     = flag.String("kv", "all", "Which KV store to use. Options: all, badger, rocksdb, lmdb")
+	which     = flag.String("kv", "badger", "Which KV store to use. Options: badger, rocksdb, lmdb")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 	dir       = flag.String("dir", "", "Base dir for writes.")
@@ -119,7 +119,7 @@ func main() {
 
 	var init bool
 
-	if *which == "badger" || *which == "all" {
+	if *which == "badger" {
 		init = true
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
@@ -128,18 +128,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("while opening badger: %v", err)
 		}
-	}
-
-	if *which == "rocksdb" || *which == "all" {
+	} else if *which == "rocksdb" {
 		init = true
 		fmt.Println("Init Rocks")
 		os.RemoveAll(*dir + "/rocks")
 		os.MkdirAll(*dir+"/rocks", 0777)
 		rdb, err = store.NewStore(*dir + "/rocks")
 		y.Check(err)
-	}
-
-	if *which == "lmdb" || *which == "all" {
+	} else if *which == "lmdb" {
 		init = true
 		fmt.Println("Init lmdb")
 		os.RemoveAll(*dir + "/lmdb")
@@ -154,6 +150,8 @@ func main() {
 
 		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
 		y.Check(err)
+	} else {
+		log.Fatalf("Invalid value for option kv: '%s'", *which)
 	}
 
 	if !init {
