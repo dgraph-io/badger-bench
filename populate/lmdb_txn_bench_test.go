@@ -50,22 +50,18 @@ func writeEntries(dbi lmdb.DBI, txn *lmdb.Txn, entries []*badger.Entry) error {
 }
 
 func writeSimpleBatched(entries []*badger.Entry, dbi lmdb.DBI) {
-	res := make(chan error)
-	go update(res, func(txn *lmdb.Txn) (err error) {
+	err := lmdbEnv.Update(func(txn *lmdb.Txn) (err error) {
 		return writeEntries(dbi, txn, entries)
 	})
-	err := <-res
 	y.Check(err)
 }
 
 func writeTxnBatched(entries []*badger.Entry, dbi lmdb.DBI) {
-	res := make(chan error)
-	go update(res, func(txn *lmdb.Txn) error {
+	err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
 		return txn.Sub(func(txn *lmdb.Txn) error {
 			return writeEntries(dbi, txn, entries)
 		})
 	})
-	err := <-res
 	y.Check(err)
 }
 
