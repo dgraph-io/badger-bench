@@ -50,7 +50,7 @@ func writeEntries(dbi lmdb.DBI, txn *lmdb.Txn, entries []*badger.Entry) error {
 }
 
 func writeSimpleBatched(entries []*badger.Entry, dbi lmdb.DBI) {
-	err := lmdbEnv.Update(func(txn *lmdb.Txn) (err error) {
+	err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
 		return writeEntries(dbi, txn, entries)
 	})
 	y.Check(err)
@@ -78,7 +78,8 @@ func BenchmarkLmdbBatch(b *testing.B) {
 	defer lmdbEnv.Close()
 
 	var dbi lmdb.DBI
-	err := lmdbEnv.Update(func(txn *lmdb.Txn) (err error) {
+	err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
+		var err error
 		dbi, err = txn.CreateDBI("bench")
 		return err
 	})
