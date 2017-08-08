@@ -157,7 +157,7 @@ func main() {
 		y.Check(err)
 		err = lmdbEnv.SetMaxDBs(1)
 		y.Check(err)
-		err = lmdbEnv.SetMapSize(1 << 36) // ~68Gb
+		err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
 		y.Check(err)
 
 		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
