@@ -70,8 +70,25 @@ func writeBatch(entries []*badger.Entry) int {
 	}
 
 	if lmdbEnv != nil {
-		// TODO write entries as part of a txn
-		// see https://github.com/rvagg/lmdb/blob/master/src/database.cc#L208
+		var dbi lmdb.DBI
+		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
+			var err error
+			dbi, err = txn.CreateDBI("bench")
+			return err
+		})
+		y.Check(err)
+
+		err = lmdbEnv.Update(func(txn *lmdb.Txn) error {
+			for _, e := range entries {
+				err := txn.Put(dbi, e.Key, e.Value, 0)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		y.Check(err)
+
 	}
 
 	return len(entries)
