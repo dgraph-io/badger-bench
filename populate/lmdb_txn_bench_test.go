@@ -2,7 +2,7 @@
 //
 // This is needed because lmdb does not have support for batched writes,
 // and we are trying to simulate it using a sub-txn, going by a hint in
-// the Node bindings for lmdb.
+// the Node bindings for lmdb: https://github.com/rvagg/lmdb/blob/master/src/database.cc#L208
 package main
 
 import (
