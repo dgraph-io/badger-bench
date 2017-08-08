@@ -51,14 +51,6 @@ var rdb *store.Store
 var lmdbEnv *lmdb.Env
 
 func writeBatch(entries []*badger.Entry) int {
-	rb := rdb.NewWriteBatch()
-	defer rb.Destroy()
-
-	for _, e := range entries {
-		fillEntry(e)
-		rb.Put(e.Key, e.Value)
-	}
-
 	if bdb != nil {
 		bdb.BatchSet(entries)
 		for _, e := range entries {
@@ -67,6 +59,13 @@ func writeBatch(entries []*badger.Entry) int {
 	}
 
 	if rdb != nil {
+		rb := rdb.NewWriteBatch()
+		defer rb.Destroy()
+
+		for _, e := range entries {
+			fillEntry(e)
+			rb.Put(e.Key, e.Value)
+		}
 		y.Check(rdb.WriteBatch(rb))
 	}
 
