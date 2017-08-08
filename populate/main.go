@@ -244,7 +244,9 @@ func main() {
 	}
 
 	if lmdbEnv != nil {
+
 		fmt.Println("closing lmdb")
+		lmdbEnv.CloseDBI(lmdbDBI)
 		lmdbEnv.Close()
 	}
 
