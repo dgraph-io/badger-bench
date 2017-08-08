@@ -131,7 +131,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 			var count int
 			for pb.Next() {
 				key := newKey()
-				err = lmdbEnv.View(func(txn *lmdb.Txn) error {
+				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
 					_, err := txn.Get(lmdbDBI, key)
 					if err != nil {
 						return err
