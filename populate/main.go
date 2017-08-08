@@ -49,6 +49,7 @@ func fillEntry(e *badger.Entry) {
 var bdb *badger.KV
 var rdb *store.Store
 var lmdbEnv *lmdb.Env
+var lmdbDBI lmdb.DBI
 
 func writeBatch(entries []*badger.Entry) int {
 	if bdb != nil {
@@ -70,17 +71,9 @@ func writeBatch(entries []*badger.Entry) int {
 	}
 
 	if lmdbEnv != nil {
-		var dbi lmdb.DBI
 		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
-			var err error
-			dbi, err = txn.CreateDBI("bench")
-			return err
-		})
-		y.Check(err)
-
-		err = lmdbEnv.Update(func(txn *lmdb.Txn) error {
 			for _, e := range entries {
-				err := txn.Put(dbi, e.Key, e.Value, 0)
+				err := txn.Put(lmdbDBI, e.Key, e.Value, 0)
 				if err != nil {
 					return err
 				}
@@ -165,6 +158,14 @@ func main() {
 		y.Check(err)
 
 		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
+		y.Check(err)
+
+		// Acquire handle
+		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
+			var err error
+			lmdbDBI, err = txn.CreateDBI("bench")
+			return err
+		})
 		y.Check(err)
 	} else {
 		log.Fatalf("Invalid value for option kv: '%s'", *which)
