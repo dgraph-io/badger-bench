@@ -97,20 +97,20 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
+	var totalCount uint64
 	b.Run("read-random-rocks", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
 			for pb.Next() {
 				key := newKey()
 				if _, err := rdb.Get(key); err == nil {
 					count++
 				}
 			}
-			if count > 100000 {
-				b.Logf("rocks %d keys had valid values.", count)
-			}
+			atomic.AddUint64(&totalCount, count)
 		})
 	})
+	b.Logf("rocks %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
