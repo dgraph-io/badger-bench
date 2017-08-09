@@ -76,21 +76,31 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	var totalCount uint64
+	var totalFound uint64
+	var totalErr uint64
+	var totalNotFound uint64
 	b.Run("read-random-badger", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count uint64
+			var found, error_, notFound uint64
 			for pb.Next() {
 				key := newKey()
 				var val badger.KVItem
 				if err := bdb.Get(key, &val); err == nil && val.Value() != nil {
-					count++
+					found++
+				} else if err != nil {
+					error_++
+				} else {
+					notFound++
 				}
 			}
-			atomic.AddUint64(&totalCount, count)
+			atomic.AddUint64(&totalFound, found)
+			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalNotFound, notFound)
 		})
 	})
-	b.Logf("badger %d keys had valid values.", totalCount)
+	b.Logf("badger %d keys had valid values.", totalFound)
+	b.Logf("badger %d keys had no values", totalNotFound)
+	b.Logf("badger %d keys had errors", totalErr)
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
@@ -127,25 +137,37 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	var totalCount uint64
+	var totalFound uint64
+	var totalErr uint64
+	var totalNotFound uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count uint64
+			var found, error_, notFound uint64
+
 			for pb.Next() {
 				key := newKey()
 				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
 					_, err := txn.Get(lmdbDBI, key)
-					if err != nil {
+					if lmdb.IsNotFound(err) {
+						notFound++
+						return nil
+
+					} else if err != nil {
+						error_++
 						return err
 					}
-					count++
+					found++
 					return nil
 				})
 			}
-			atomic.AddUint64(&totalCount, count)
+			atomic.AddUint64(&totalFound, found)
+			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalNotFound, notFound)
 		})
 	})
-	b.Logf("lmdb %d keys had valid values.", totalCount)
+	b.Logf("lmdb %d keys had valid values.", totalFound)
+	b.Logf("lmdb %d keys had no values", totalNotFound)
+	b.Logf("lmdb %d keys had errors", totalErr)
 }
 
 func safecopy(dst []byte, src []byte) []byte {
