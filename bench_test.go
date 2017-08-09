@@ -83,7 +83,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			for pb.Next() {
 				key := newKey()
 				var val badger.KVItem
-				if bdb.Get(key, &val); val.Value() != nil {
+				if err := bdb.Get(key, &val); err == nil && val.Value() != nil && len(val.Value()) > 0 {
 					count++
 				}
 			}
