@@ -85,6 +85,10 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			for pb.Next() {
 				key := newKey()
 				if bdb.Get(key, &val); val.Value() != nil {
+					if len(val.Value()) != *flagValueSize {
+						b.Logf("Value size %d != %d", len(val.Value()), *flagValueSize)
+						b.FailNow()
+					}
 					count++
 				}
 			}
@@ -108,7 +112,12 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 			var count uint64
 			for pb.Next() {
 				key := newKey()
-				if _, err := rdb.Get(key); err == nil {
+				if v, err := rdb.Get(key); err == nil {
+
+					if len(v.Data()) != *flagValueSize {
+						b.Logf("Value size %d != %d", len(v.Data()), *flagValueSize)
+						b.FailNow()
+					}
 					count++
 				}
 			}
@@ -143,9 +152,13 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 			for pb.Next() {
 				key := newKey()
 				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
-					_, err := txn.Get(lmdbDBI, key)
+					v, err := txn.Get(lmdbDBI, key)
 					if err != nil {
 						return err
+					}
+					if len(v) != *flagValueSize {
+						b.Logf("Value size %d != %d", v, *flagValueSize)
+						b.FailNow()
 					}
 					count++
 					return nil
@@ -185,6 +198,11 @@ func BenchmarkIterateRocks(b *testing.B) {
 					k = safecopy(k, itr.Key().Data())
 					v = safecopy(v, itr.Value().Data())
 				}
+				if len(v) != *flagValueSize {
+					b.Logf("Value size %d != %d", v, *flagValueSize)
+					b.FailNow()
+				}
+
 				count++
 				print(count)
 				if count > 2*Mi {
@@ -230,6 +248,10 @@ func BenchmarkIterateLmdb(b *testing.B) {
 					}
 					if err != nil {
 						return err
+					}
+					if len(v1) != *flagValueSize {
+						b.Logf("Value size %d != %d", v, *flagValueSize)
+						b.FailNow()
 					}
 
 					//fmt.Printf("%s %s\n", k, v)
@@ -303,6 +325,11 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 					k = safecopy(k, item.Key())
 					v = safecopy(v, item.Value())
 				}
+				if len(v) != *flagValueSize {
+					b.Logf("Value size %d != %d", v, *flagValueSize)
+					b.FailNow()
+				}
+
 				count++
 				print(count)
 				if count >= 2*Mi {
