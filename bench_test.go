@@ -76,58 +76,52 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	var maxCount uint64
+	var totalFound uint64
+	var totalErr uint64
+	var totalNotFound uint64
 	b.Run("read-random-badger", func(b *testing.B) {
-		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
-			var count uint64
-			var val badger.KVItem
+			var found, error_, notFound uint64
 			for pb.Next() {
 				key := newKey()
+				var val badger.KVItem
 				if err := bdb.Get(key, &val); err == nil && val.Value() != nil {
-					if len(val.Value()) != *flagValueSize {
-						b.Logf("Value size for key %s - %d != %d", string(key), len(val.Value()), *flagValueSize)
-						b.FailNow()
-					}
-					count++
+					found++
+				} else if err != nil {
+					error_++
+				} else {
+					notFound++
 				}
 			}
-			atomic.AddUint64(&totalCount, count)
+			atomic.AddUint64(&totalFound, found)
+			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalNotFound, notFound)
 		})
-		if totalCount > maxCount {
-			maxCount = totalCount
-		}
 	})
-	b.Logf("badger: Maximum no. of keys found: %d", maxCount)
+	b.Logf("badger %d keys had valid values.", totalFound)
+	b.Logf("badger %d keys had no values", totalNotFound)
+	b.Logf("badger %d keys had errors", totalErr)
+	b.Logf("badger hit rate : %.2f: ", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
-	var maxCount uint64
+	var totalCount uint64
 	b.Run("read-random-rocks", func(b *testing.B) {
-		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
 			var count uint64
 			for pb.Next() {
 				key := newKey()
-				if v, err := rdb.Get(key); err == nil {
-
-					if len(v.Data()) != *flagValueSize {
-						b.Logf("Value size %d != %d", len(v.Data()), *flagValueSize)
-						b.FailNow()
-					}
+				if _, err := rdb.Get(key); err == nil {
 					count++
 				}
 			}
 			atomic.AddUint64(&totalCount, count)
 		})
-		if totalCount > maxCount {
-			maxCount = totalCount
-		}
 	})
-	b.Logf("rocks: Maximum no. of keys found: %d", maxCount)
+	b.Logf("rocks %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
@@ -144,33 +138,38 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	var maxCount uint64
+	var totalFound uint64
+	var totalErr uint64
+	var totalNotFound uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
-		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
-			var count uint64
+			var found, error_, notFound uint64
+
 			for pb.Next() {
 				key := newKey()
 				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
-					v, err := txn.Get(lmdbDBI, key)
-					if err != nil {
+					_, err := txn.Get(lmdbDBI, key)
+					if lmdb.IsNotFound(err) {
+						notFound++
+						return nil
+
+					} else if err != nil {
+						error_++
 						return err
 					}
-					if len(v) != *flagValueSize {
-						b.Logf("Value size %d != %d", v, *flagValueSize)
-						b.FailNow()
-					}
-					count++
+					found++
 					return nil
 				})
 			}
-			atomic.AddUint64(&totalCount, count)
+			atomic.AddUint64(&totalFound, found)
+			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalNotFound, notFound)
 		})
-		if totalCount > maxCount {
-			maxCount = totalCount
-		}
 	})
-	b.Logf("lmdb: Maximum no. of keys found: %d", maxCount)
+	b.Logf("lmdb %d keys had valid values.", totalFound)
+	b.Logf("lmdb %d keys had no values", totalNotFound)
+	b.Logf("lmdb %d keys had errors", totalErr)
+	b.Logf("lmdb hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
 func safecopy(dst []byte, src []byte) []byte {
@@ -198,11 +197,6 @@ func BenchmarkIterateRocks(b *testing.B) {
 					k = safecopy(k, itr.Key().Data())
 					v = safecopy(v, itr.Value().Data())
 				}
-				if len(v) != *flagValueSize {
-					b.Logf("Value size %d != %d", v, *flagValueSize)
-					b.FailNow()
-				}
-
 				count++
 				print(count)
 				if count > 2*Mi {
@@ -248,10 +242,6 @@ func BenchmarkIterateLmdb(b *testing.B) {
 					}
 					if err != nil {
 						return err
-					}
-					if len(v1) != *flagValueSize {
-						b.Logf("Value size %d != %d", v, *flagValueSize)
-						b.FailNow()
 					}
 
 					//fmt.Printf("%s %s\n", k, v)
@@ -325,11 +315,6 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 					k = safecopy(k, item.Key())
 					v = safecopy(v, item.Value())
 				}
-				if len(v) != *flagValueSize {
-					b.Logf("Value size %d != %d", v, *flagValueSize)
-					b.FailNow()
-				}
-
 				count++
 				print(count)
 				if count >= 2*Mi {
