@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
@@ -75,41 +76,41 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
+	var totalCount uint64
 	b.Run("read-random-badger", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
+			var val badger.KVItem
 			for pb.Next() {
 				key := newKey()
-				var val badger.KVItem
 				if bdb.Get(key, &val); val.Value() != nil {
 					count++
 				}
 			}
-			if count > 100000 {
-				b.Logf("badger %d keys had valid values.", count)
-			}
+
 		})
 	})
+	b.Logf("badger %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
+	var totalCount uint64
 	b.Run("read-random-rocks", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
 			for pb.Next() {
 				key := newKey()
 				if _, err := rdb.Get(key); err == nil {
 					count++
 				}
 			}
-			if count > 100000 {
-				b.Logf("rocks %d keys had valid values.", count)
-			}
+			atomic.AddUint64(&totalCount, count)
 		})
 	})
+	b.Logf("rocks %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
@@ -126,9 +127,10 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
+	var totalCount uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
 			for pb.Next() {
 				key := newKey()
 				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
@@ -140,11 +142,10 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 					return nil
 				})
 			}
-			if count > 100000 {
-				b.Logf("lmdb %d keys had valid values.", count)
-			}
+			atomic.AddUint64(&totalCount, count)
 		})
 	})
+	b.Logf("lmdb %d keys had valid values.", totalCount)
 }
 
 func safecopy(dst []byte, src []byte) []byte {
