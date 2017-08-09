@@ -101,7 +101,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	b.Logf("badger %d keys had valid values.", totalFound)
 	b.Logf("badger %d keys had no values", totalNotFound)
 	b.Logf("badger %d keys had errors", totalErr)
-	b.Logf("badger hit rate : %.2f: ", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
+	b.Logf("badger hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
