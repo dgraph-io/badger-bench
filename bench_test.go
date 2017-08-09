@@ -84,7 +84,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			var val badger.KVItem
 			for pb.Next() {
 				key := newKey()
-				if err := bdb.Get(key, &val); err == nil {
+				if err := bdb.Get(key, &val); err == nil && val.Value() != nil {
 					if len(val.Value()) != *flagValueSize {
 						b.Logf("Value size for key %s - %d != %d", string(key), len(val.Value()), *flagValueSize)
 						b.FailNow()
