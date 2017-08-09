@@ -81,20 +81,20 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	var totalNotFound uint64
 	b.Run("read-random-badger", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var found, error_, notFound uint64
+			var found, errored, notFound uint64
 			for pb.Next() {
 				key := newKey()
 				var val badger.KVItem
 				if err := bdb.Get(key, &val); err == nil && val.Value() != nil {
 					found++
 				} else if err != nil {
-					error_++
+					errored++
 				} else {
 					notFound++
 				}
 			}
 			atomic.AddUint64(&totalFound, found)
-			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalErr, errored)
 			atomic.AddUint64(&totalNotFound, notFound)
 		})
 	})
@@ -143,7 +143,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	var totalNotFound uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var found, error_, notFound uint64
+			var found, errored, notFound uint64
 
 			for pb.Next() {
 				key := newKey()
@@ -154,7 +154,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 						return nil
 
 					} else if err != nil {
-						error_++
+						errored++
 						return err
 					}
 					found++
@@ -162,7 +162,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 				})
 			}
 			atomic.AddUint64(&totalFound, found)
-			atomic.AddUint64(&totalErr, error_)
+			atomic.AddUint64(&totalErr, errored)
 			atomic.AddUint64(&totalNotFound, notFound)
 		})
 	})
