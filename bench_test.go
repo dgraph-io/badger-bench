@@ -127,9 +127,10 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
+	var totalCount uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
 			for pb.Next() {
 				key := newKey()
 				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
@@ -141,11 +142,10 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 					return nil
 				})
 			}
-			if count > 100000 {
-				b.Logf("lmdb %d keys had valid values.", count)
-			}
+			atomic.AddUint64(&totalCount, count)
 		})
 	})
+	b.Logf("lmdb %d keys had valid values.", totalCount)
 }
 
 func safecopy(dst []byte, src []byte) []byte {
