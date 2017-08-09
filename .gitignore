@@ -6,3 +6,4 @@ badger-bench
 ramdisk
 tmp
 bench-tmp
+badger-bench.test
