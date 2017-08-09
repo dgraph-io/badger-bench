@@ -186,6 +186,7 @@ func BenchmarkIterateRocks(b *testing.B) {
 					v = safecopy(v, itr.Value().Data())
 				}
 				count++
+				print(count)
 				if count > 2*Mi {
 					break
 				}
@@ -238,6 +239,7 @@ func BenchmarkIterateLmdb(b *testing.B) {
 					v = safecopy(v, v1)
 
 					count++
+					print(count)
 					if count > 2*Mi {
 						break
 					}
@@ -245,6 +247,7 @@ func BenchmarkIterateLmdb(b *testing.B) {
 				return nil
 			})
 			y.Check(err)
+			b.Logf("[%d] Counted %d keys\n", j, count)
 		}
 	})
 }
@@ -269,6 +272,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 					k = safecopy(k, item.Key())
 				}
 				count++
+				print(count)
 				if count > 2*Mi {
 					break
 				}
