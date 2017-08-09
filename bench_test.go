@@ -76,8 +76,9 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	var totalCount uint64
+	var maxCount uint64
 	b.Run("read-random-badger", func(b *testing.B) {
+		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
 			var count uint64
 			var val badger.KVItem
@@ -87,18 +88,22 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 					count++
 				}
 			}
-
+			atomic.AddUint64(&totalCount, count)
 		})
+		if totalCount > maxCount {
+			maxCount = totalCount
+		}
 	})
-	b.Logf("badger %d keys had valid values.", totalCount)
+	b.Logf("badger: Maximum no. of keys found: %d", maxCount)
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
-	var totalCount uint64
+	var maxCount uint64
 	b.Run("read-random-rocks", func(b *testing.B) {
+		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
 			var count uint64
 			for pb.Next() {
@@ -109,8 +114,11 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 			}
 			atomic.AddUint64(&totalCount, count)
 		})
+		if totalCount > maxCount {
+			maxCount = totalCount
+		}
 	})
-	b.Logf("rocks %d keys had valid values.", totalCount)
+	b.Logf("rocks: Maximum no. of keys found: %d", maxCount)
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
@@ -127,8 +135,9 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	var totalCount uint64
+	var maxCount uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
+		var totalCount uint64
 		b.RunParallel(func(pb *testing.PB) {
 			var count uint64
 			for pb.Next() {
@@ -144,8 +153,11 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 			}
 			atomic.AddUint64(&totalCount, count)
 		})
+		if totalCount > maxCount {
+			maxCount = totalCount
+		}
 	})
-	b.Logf("lmdb %d keys had valid values.", totalCount)
+	b.Logf("lmdb: Maximum no. of keys found: %d", maxCount)
 }
 
 func safecopy(dst []byte, src []byte) []byte {
