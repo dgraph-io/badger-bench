@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
@@ -75,9 +76,10 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
+	var totalCount uint64
 	b.Run("read-random-badger", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
-			var count int
+			var count uint64
 			for pb.Next() {
 				key := newKey()
 				var val badger.KVItem
@@ -85,11 +87,10 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 					count++
 				}
 			}
-			if count > 100000 {
-				b.Logf("badger %d keys had valid values.", count)
-			}
+			atomic.AddUint64(&totalCount, count)
 		})
 	})
+	b.Logf("badger %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
