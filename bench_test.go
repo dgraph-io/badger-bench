@@ -86,7 +86,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 				key := newKey()
 				if bdb.Get(key, &val); val.Value() != nil {
 					if len(val.Value()) != *flagValueSize {
-						b.Logf("Value size %d != %d", len(val.Value()), *flagValueSize)
+						b.Logf("Value size for key %s - %d != %d", string(key), len(val.Value()), *flagValueSize)
 						b.FailNow()
 					}
 					count++
