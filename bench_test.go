@@ -74,60 +74,73 @@ func print(count int) {
 	}
 }
 
+type hitCounter struct {
+	found    uint64
+	notFound uint64
+	errored  uint64
+}
+
+func (h *hitCounter) Reset() {
+	h.found, h.notFound, h.errored = 0, 0, 0
+}
+
+func (h *hitCounter) Print(storeName string, b *testing.B) {
+	b.Logf("%s: %d keys had valid values.", storeName, h.found)
+	b.Logf("%s: %d keys had no values", storeName, h.notFound)
+	b.Logf("%s: %d keys had errors", storeName, h.errored)
+	b.Logf("%s: %d total keys looked at", storeName, h.found+h.notFound+h.errored)
+	b.Logf("%s: hit rate : %.2f", storeName, float64(h.found)/float64(h.found+h.notFound+h.errored))
+}
+
+// A generic read benchmark that runs the doGet func multiple times, counts
+// the results and prints them out.
+func runRandomReadBenchmark(storeName string, b *testing.B, doGet func(*hitCounter)) {
+	counter := &hitCounter{}
+	b.Run("read-random"+storeName, func(b *testing.B) {
+		counter.Reset()
+		b.RunParallel(func(pb *testing.PB) {
+			c := &hitCounter{}
+			for pb.Next() {
+				doGet(c)
+			}
+			atomic.AddUint64(&counter.found, c.found)
+			atomic.AddUint64(&counter.notFound, c.notFound)
+			atomic.AddUint64(&counter.errored, c.errored)
+		})
+	})
+	counter.Print(storeName, b)
+}
+
 func BenchmarkReadRandomBadger(b *testing.B) {
 	bdb, err := getBadger()
 	y.Check(err)
 	defer bdb.Close()
 
-	var totalFound uint64
-	var totalErr uint64
-	var totalNotFound uint64
-	b.Run("read-random-badger", func(b *testing.B) {
-		totalFound, totalNotFound, totalErr = 0, 0, 0
-		b.RunParallel(func(pb *testing.PB) {
-			var found, errored, notFound uint64
-			var item badger.KVItem
-			for pb.Next() {
-				key := newKey()
-				err := bdb.Get(key, &item)
-				if err != nil {
-					errored++
-				} else if item.Value() != nil {
-					found++
-				} else {
-					notFound++
-				}
-			}
-			atomic.AddUint64(&totalFound, found)
-			atomic.AddUint64(&totalErr, errored)
-			atomic.AddUint64(&totalNotFound, notFound)
-		})
+	var item badger.KVItem
+	runRandomReadBenchmark("badger", b, func(c *hitCounter) {
+		key := newKey()
+		err := bdb.Get(key, &item)
+		if err != nil {
+			c.errored++
+		} else if item.Value() != nil {
+			c.found++
+		} else {
+			c.notFound++
+		}
 	})
-	b.Logf("badger %d keys had valid values.", totalFound)
-	b.Logf("badger %d keys had no values", totalNotFound)
-	b.Logf("badger %d keys had errors", totalErr)
-	b.Logf("badger %d total keys looked at", totalFound+totalNotFound+totalErr)
-	b.Logf("badger hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
 func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
-	var totalCount uint64
-	b.Run("read-random-rocks", func(b *testing.B) {
-		b.RunParallel(func(pb *testing.PB) {
-			var count uint64
-			for pb.Next() {
-				key := newKey()
-				if _, err := rdb.Get(key); err == nil {
-					count++
-				}
-			}
-			atomic.AddUint64(&totalCount, count)
-		})
+	runRandomReadBenchmark("rocksdb", b, func(c *hitCounter) {
+		key := newKey()
+		// FIXME lookup API and increment accordingly
+		if _, err := rdb.Get(key); err == nil {
+			c.found++
+		}
 	})
-	b.Logf("rocks %d keys had valid values.", totalCount)
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
@@ -144,42 +157,24 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	var totalFound uint64
-	var totalErr uint64
-	var totalNotFound uint64
-	b.Run("read-random-lmdb", func(b *testing.B) {
-		totalFound, totalNotFound, totalErr = 0, 0, 0
-		b.RunParallel(func(pb *testing.PB) {
-			var found, errored, notFound uint64
+	runRandomReadBenchmark("lmdb", b, func(c *hitCounter) {
+		key := newKey()
+		err = lmdbEnv.View(func(txn *lmdb.Txn) error {
+			_, err := txn.Get(lmdbDBI, key)
+			if lmdb.IsNotFound(err) {
+				c.notFound++
+				return nil
 
-			for pb.Next() {
-				key := newKey()
-				err = lmdbEnv.View(func(txn *lmdb.Txn) error {
-					_, err := txn.Get(lmdbDBI, key)
-					if lmdb.IsNotFound(err) {
-						notFound++
-						return nil
-
-					} else if err != nil {
-						return err
-					}
-					found++
-					return nil
-				})
-				if err != nil {
-					errored++
-				}
+			} else if err != nil {
+				return err
 			}
-			atomic.AddUint64(&totalFound, found)
-			atomic.AddUint64(&totalErr, errored)
-			atomic.AddUint64(&totalNotFound, notFound)
+			c.found++
+			return nil
 		})
+		if err != nil {
+			c.errored++
+		}
 	})
-	b.Logf("lmdb %d keys had valid values.", totalFound)
-	b.Logf("lmdb %d keys had no values", totalNotFound)
-	b.Logf("lmdb %d keys had errors", totalErr)
-	b.Logf("lmdb %d total keys looked at", totalFound+totalNotFound+totalErr)
-	b.Logf("lmdb hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
 func safecopy(dst []byte, src []byte) []byte {
