@@ -86,13 +86,13 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 		totalFound, totalNotFound, totalErr = 0, 0, 0
 		b.RunParallel(func(pb *testing.PB) {
 			var found, errored, notFound uint64
-			var val badger.KVItem
+			var item badger.KVItem
 			for pb.Next() {
 				key := newKey()
-				err := bdb.Get(key, &val)
+				err := bdb.Get(key, &item)
 				if err != nil {
 					errored++
-				} else if val.Value() != nil {
+				} else if item.Value() != nil {
 					found++
 				} else {
 					notFound++
