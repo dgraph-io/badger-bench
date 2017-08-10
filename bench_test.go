@@ -125,7 +125,8 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			err := bdb.Get(key, &item)
 			if err != nil {
 				c.errored++
-			} else if item.Value() != nil {
+			} else if v := item.Value(); v != nil {
+				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
 				c.found++
 			} else {
 				c.notFound++
@@ -168,7 +169,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 			key := newKey()
 			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
 				txn.RawRead = true
-				_, err := txn.Get(lmdbDBI, key)
+				v, err := txn.Get(lmdbDBI, key)
 				if lmdb.IsNotFound(err) {
 					c.notFound++
 					return nil
@@ -176,6 +177,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 				} else if err != nil {
 					return err
 				}
+				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
 				c.found++
 				return nil
 			})
