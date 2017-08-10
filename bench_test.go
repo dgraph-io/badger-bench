@@ -257,6 +257,8 @@ func BenchmarkIterateLmdb(b *testing.B) {
 
 					//fmt.Printf("%s %s\n", k, v)
 
+					y.AssertTruef(len(v1) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v1), *flagValueSize)
+
 					// do some processing.
 					k = safecopy(k, k1)
 					v = safecopy(v, v1)
@@ -321,6 +323,8 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 			itr := bdb.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
+				vsz := len(item.Value())
+				y.AssertTruef(vsz == *flagValueSize, "Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
 				{
 					// do some processing.
 					k = safecopy(k, item.Key())
