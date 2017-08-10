@@ -84,6 +84,12 @@ func (h *hitCounter) Reset() {
 	h.found, h.notFound, h.errored = 0, 0, 0
 }
 
+func (h *hitCounter) Update(c *hitCounter) {
+	atomic.AddUint64(&h.found, c.found)
+	atomic.AddUint64(&h.notFound, c.notFound)
+	atomic.AddUint64(&h.errored, c.errored)
+}
+
 func (h *hitCounter) Print(storeName string, b *testing.B) {
 	b.Logf("%s: %d keys had valid values.", storeName, h.found)
 	b.Logf("%s: %d keys had no values", storeName, h.notFound)
@@ -92,20 +98,16 @@ func (h *hitCounter) Print(storeName string, b *testing.B) {
 	b.Logf("%s: hit rate : %.2f", storeName, float64(h.found)/float64(h.found+h.notFound+h.errored))
 }
 
-// A generic read benchmark that runs the doGet func multiple times, counts
-// the results and prints them out.
-func runRandomReadBenchmark(storeName string, b *testing.B, doGet func(*hitCounter)) {
+// A generic read benchmark that runs the doBench func for a specific key value store,
+// aggregates the hit counts and prints them out.
+func runRandomReadBenchmark(storeName string, b *testing.B, doBench func(*hitCounter, *testing.PB)) {
 	counter := &hitCounter{}
 	b.Run("read-random"+storeName, func(b *testing.B) {
 		counter.Reset()
 		b.RunParallel(func(pb *testing.PB) {
 			c := &hitCounter{}
-			for pb.Next() {
-				doGet(c)
-			}
-			atomic.AddUint64(&counter.found, c.found)
-			atomic.AddUint64(&counter.notFound, c.notFound)
-			atomic.AddUint64(&counter.errored, c.errored)
+			doBench(c, pb)
+			counter.Update(c)
 		})
 	})
 	counter.Print(storeName, b)
@@ -116,16 +118,18 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	runRandomReadBenchmark("badger", b, func(c *hitCounter) {
+	runRandomReadBenchmark("badger", b, func(c *hitCounter, pb *testing.PB) {
 		var item badger.KVItem
-		key := newKey()
-		err := bdb.Get(key, &item)
-		if err != nil {
-			c.errored++
-		} else if item.Value() != nil {
-			c.found++
-		} else {
-			c.notFound++
+		for pb.Next() {
+			key := newKey()
+			err := bdb.Get(key, &item)
+			if err != nil {
+				c.errored++
+			} else if item.Value() != nil {
+				c.found++
+			} else {
+				c.notFound++
+			}
 		}
 	})
 }
@@ -134,11 +138,13 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
-	runRandomReadBenchmark("rocksdb", b, func(c *hitCounter) {
-		key := newKey()
-		// FIXME lookup API and increment accordingly
-		if _, err := rdb.Get(key); err == nil {
-			c.found++
+	runRandomReadBenchmark("rocksdb", b, func(c *hitCounter, pb *testing.PB) {
+		for pb.Next() {
+			key := newKey()
+			// FIXME lookup API and increment accordingly
+			if _, err := rdb.Get(key); err == nil {
+				c.found++
+			}
 		}
 	})
 }
@@ -157,23 +163,25 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	runRandomReadBenchmark("lmdb", b, func(c *hitCounter) {
-		key := newKey()
-		err = lmdbEnv.View(func(txn *lmdb.Txn) error {
-			txn.RawRead = true
-			_, err := txn.Get(lmdbDBI, key)
-			if lmdb.IsNotFound(err) {
-				c.notFound++
-				return nil
+	runRandomReadBenchmark("lmdb", b, func(c *hitCounter, pb *testing.PB) {
+		for pb.Next() {
+			key := newKey()
+			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
+				txn.RawRead = true
+				_, err := txn.Get(lmdbDBI, key)
+				if lmdb.IsNotFound(err) {
+					c.notFound++
+					return nil
 
-			} else if err != nil {
-				return err
+				} else if err != nil {
+					return err
+				}
+				c.found++
+				return nil
+			})
+			if err != nil {
+				c.errored++
 			}
-			c.found++
-			return nil
-		})
-		if err != nil {
-			c.errored++
 		}
 	})
 }
