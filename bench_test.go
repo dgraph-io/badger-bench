@@ -83,6 +83,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	var totalErr uint64
 	var totalNotFound uint64
 	b.Run("read-random-badger", func(b *testing.B) {
+		totalFound, totalNotFound, totalErr = 0, 0, 0
 		b.RunParallel(func(pb *testing.PB) {
 			var found, errored, notFound uint64
 			for pb.Next() {
@@ -104,6 +105,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	b.Logf("badger %d keys had valid values.", totalFound)
 	b.Logf("badger %d keys had no values", totalNotFound)
 	b.Logf("badger %d keys had errors", totalErr)
+	b.Logf("badger %d total keys looked at", totalFound+totalNotFound+totalErr)
 	b.Logf("badger hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
@@ -145,6 +147,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	var totalErr uint64
 	var totalNotFound uint64
 	b.Run("read-random-lmdb", func(b *testing.B) {
+		totalFound, totalNotFound, totalErr = 0, 0, 0
 		b.RunParallel(func(pb *testing.PB) {
 			var found, errored, notFound uint64
 
@@ -174,6 +177,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	b.Logf("lmdb %d keys had valid values.", totalFound)
 	b.Logf("lmdb %d keys had no values", totalNotFound)
 	b.Logf("lmdb %d keys had errors", totalErr)
+	b.Logf("lmdb %d total keys looked at", totalFound+totalNotFound+totalErr)
 	b.Logf("lmdb hit rate : %.2f", float64(totalFound)/float64(totalFound+totalNotFound+totalErr))
 }
 
