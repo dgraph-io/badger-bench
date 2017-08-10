@@ -116,8 +116,8 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	var item badger.KVItem
 	runRandomReadBenchmark("badger", b, func(c *hitCounter) {
+		var item badger.KVItem
 		key := newKey()
 		err := bdb.Get(key, &item)
 		if err != nil {
