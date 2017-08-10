@@ -160,6 +160,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	runRandomReadBenchmark("lmdb", b, func(c *hitCounter) {
 		key := newKey()
 		err = lmdbEnv.View(func(txn *lmdb.Txn) error {
+			txn.RawRead = true
 			_, err := txn.Get(lmdbDBI, key)
 			if lmdb.IsNotFound(err) {
 				c.notFound++
