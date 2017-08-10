@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -46,6 +47,8 @@ func getRocks() *store.Store {
 
 func getLmdb() *lmdb.Env {
 	lmdbEnv, err := lmdb.NewEnv()
+	y.Check(err)
+	err = lmdbEnv.SetMaxReaders(math.MaxInt64)
 	y.Check(err)
 	err = lmdbEnv.SetMaxDBs(1)
 	y.Check(err)
