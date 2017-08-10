@@ -239,6 +239,7 @@ func BenchmarkIterateLmdb(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
+				txn.RawRead = true
 				cur, err := txn.OpenCursor(lmdbDBI)
 				if err != nil {
 					return err
