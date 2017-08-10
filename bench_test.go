@@ -89,10 +89,11 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			var val badger.KVItem
 			for pb.Next() {
 				key := newKey()
-				if err := bdb.Get(key, &val); err == nil && val.Value() != nil {
-					found++
-				} else if err != nil {
+				err := bdb.Get(key, &val)
+				if err != nil {
 					errored++
+				} else if val.Value() != nil {
+					found++
 				} else {
 					notFound++
 				}
