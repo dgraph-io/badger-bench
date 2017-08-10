@@ -150,19 +150,21 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 
 			for pb.Next() {
 				key := newKey()
-				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
+				err = lmdbEnv.View(func(txn *lmdb.Txn) error {
 					_, err := txn.Get(lmdbDBI, key)
 					if lmdb.IsNotFound(err) {
 						notFound++
 						return nil
 
 					} else if err != nil {
-						errored++
 						return err
 					}
 					found++
 					return nil
 				})
+				if err != nil {
+					errored++
+				}
 			}
 			atomic.AddUint64(&totalFound, found)
 			atomic.AddUint64(&totalErr, errored)
