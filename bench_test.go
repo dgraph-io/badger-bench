@@ -100,7 +100,7 @@ func (h *hitCounter) Print(storeName string, b *testing.B) {
 
 // A generic read benchmark that runs the doBench func for a specific key value store,
 // aggregates the hit counts and prints them out.
-func runRandomReadBenchmark(storeName string, b *testing.B, doBench func(*hitCounter, *testing.PB)) {
+func runRandomReadBenchmark(b *testing.B, storeName string, doBench func(*hitCounter, *testing.PB)) {
 	counter := &hitCounter{}
 	b.Run("read-random"+storeName, func(b *testing.B) {
 		counter.Reset()
@@ -118,7 +118,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
-	runRandomReadBenchmark("badger", b, func(c *hitCounter, pb *testing.PB) {
+	runRandomReadBenchmark(b, "badger", func(c *hitCounter, pb *testing.PB) {
 		var item badger.KVItem
 		for pb.Next() {
 			key := newKey()
@@ -139,7 +139,7 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 	rdb := getRocks()
 	defer rdb.Close()
 
-	runRandomReadBenchmark("rocksdb", b, func(c *hitCounter, pb *testing.PB) {
+	runRandomReadBenchmark(b, "rocksdb", func(c *hitCounter, pb *testing.PB) {
 		for pb.Next() {
 			key := newKey()
 			// FIXME lookup API and increment accordingly
@@ -164,7 +164,7 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	y.Check(err)
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
-	runRandomReadBenchmark("lmdb", b, func(c *hitCounter, pb *testing.PB) {
+	runRandomReadBenchmark(b, "lmdb", func(c *hitCounter, pb *testing.PB) {
 		for pb.Next() {
 			key := newKey()
 			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
