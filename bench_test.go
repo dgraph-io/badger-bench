@@ -199,6 +199,7 @@ func safecopy(dst []byte, src []byte) []byte {
 
 func BenchmarkIterateRocks(b *testing.B) {
 	rdb := getRocks()
+	defer rdb.Close()
 	k := make([]byte, 1024)
 	v := make([]byte, Mi)
 	b.ResetTimer()
@@ -226,6 +227,7 @@ func BenchmarkIterateRocks(b *testing.B) {
 
 func BenchmarkIterateLmdb(b *testing.B) {
 	lmdbEnv := getLmdb()
+	defer lmdbEnv.Close()
 
 	var lmdbDBI lmdb.DBI
 	// Acquire handle
