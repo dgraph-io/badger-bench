@@ -215,7 +215,7 @@ func BenchmarkIterateRocks(b *testing.B) {
 				}
 				count++
 				print(count)
-				if count > 2*Mi {
+				if count >= 2*Mi {
 					break
 				}
 			}
@@ -271,7 +271,7 @@ func BenchmarkIterateLmdb(b *testing.B) {
 
 					count++
 					print(count)
-					if count > 2*Mi {
+					if count >= 2*Mi {
 						break
 					}
 				}
@@ -305,7 +305,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 				}
 				count++
 				print(count)
-				if count > 2*Mi {
+				if count >= 2*Mi {
 					break
 				}
 			}
