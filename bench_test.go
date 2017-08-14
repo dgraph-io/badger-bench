@@ -286,6 +286,7 @@ func BenchmarkIterateLmdb(b *testing.B) {
 func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 	bdb, err := getBadger()
 	y.Check(err)
+	defer bdb.Close()
 	k := make([]byte, 1024)
 	b.ResetTimer()
 
@@ -316,6 +317,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 func BenchmarkIterateBadgerWithValues(b *testing.B) {
 	bdb, err := getBadger()
 	y.Check(err)
+	defer bdb.Close()
 	k := make([]byte, 1024)
 	v := make([]byte, Mi)
 	b.ResetTimer()
