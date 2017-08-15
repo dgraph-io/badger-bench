@@ -35,7 +35,6 @@ func getBadger() (*badger.KV, error) {
 	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
-	fmt.Println(opt.Dir)
 	opt.DoNotCompact = true
 	opt.ValueGCThreshold = 0.0
 	return badger.NewKV(&opt)
