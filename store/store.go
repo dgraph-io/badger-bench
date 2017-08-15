@@ -21,7 +21,6 @@ import (
 	"strconv"
 
 	"github.com/dgraph-io/badger-bench/rdb"
-	"github.com/dgraph-io/dgraph/x"
 )
 
 // Store contains some handles to RocksDB.
@@ -59,7 +58,7 @@ func NewStore(filepath string) (*Store, error) {
 	s.setOpts()
 	var err error
 	s.db, err = rdb.OpenDb(s.opt, filepath)
-	return s, x.Wrap(err)
+	return s, err
 }
 
 func NewSyncStore(filepath string) (*Store, error) {
@@ -68,7 +67,7 @@ func NewSyncStore(filepath string) (*Store, error) {
 	s.wopt.SetSync(true) // Do synchronous writes.
 	var err error
 	s.db, err = rdb.OpenDb(s.opt, filepath)
-	return s, x.Wrap(err)
+	return s, err
 }
 
 // NewReadOnlyStore constructs a readonly Store object at filepath, given options.
@@ -77,14 +76,14 @@ func NewReadOnlyStore(filepath string) (*Store, error) {
 	s.setOpts()
 	var err error
 	s.db, err = rdb.OpenDbForReadOnly(s.opt, filepath, false)
-	return s, x.Wrap(err)
+	return s, err
 }
 
 // Get returns the value given a key for RocksDB.
 func (s *Store) Get(key []byte) (*rdb.Slice, error) {
 	valSlice, err := s.db.Get(s.ropt, key)
 	if err != nil {
-		return nil, x.Wrapf(err, "Key: %v", key)
+		return nil, err
 	}
 
 	return valSlice, nil
@@ -125,7 +124,7 @@ func (s *Store) NewWriteBatch() *rdb.WriteBatch { return rdb.NewWriteBatch() }
 
 // WriteBatch does a batch write to RocksDB from the data in WriteBatch object.
 func (s *Store) WriteBatch(wb *rdb.WriteBatch) error {
-	return x.Wrap(s.db.Write(s.wopt, wb))
+	return s.db.Write(s.wopt, wb)
 }
 
 // NewCheckpoint creates new checkpoint from current store.
