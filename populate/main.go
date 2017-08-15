@@ -18,6 +18,7 @@ import (
 	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
+	"github.com/dgraph-io/badger/table"
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
@@ -122,7 +123,7 @@ func main() {
 	nw := *numKeys * mil
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
-	// opt.MapTablesTo = table.Nothing
+	opt.MapTablesTo = table.MemoryMap
 	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *dir + "/badger"
 	opt.ValueDir = opt.Dir
