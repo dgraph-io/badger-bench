@@ -123,6 +123,7 @@ func main() {
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
 	// opt.MapTablesTo = table.Nothing
+	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *dir + "/badger"
 	opt.ValueDir = opt.Dir
 	opt.SyncWrites = false

@@ -10,6 +10,7 @@ import (
 	"os"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/dgraph-io/badger"
@@ -31,6 +32,7 @@ const Mf float64 = 1000000
 func getBadger() (*badger.KV, error) {
 	opt := badger.DefaultOptions
 	opt.MapTablesTo = table.LoadToRAM
+	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
 	fmt.Println(opt.Dir)
