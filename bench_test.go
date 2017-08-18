@@ -145,25 +145,30 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			var found, error_, notFound uint64
 
+                        txn, err := lmdbEnv.BeginTxn(nil, lmdb.Readonly)
+                        if err != nil {
+                                return
+                        }
+                        defer txn.Abort()
+                        txn.Reset()
+
 			for pb.Next() {
 				key := newKey()
-				_ = lmdbEnv.View(func(txn *lmdb.Txn) error {
-					_, err := txn.Get(lmdbDBI, key)
-					if lmdb.IsNotFound(err) {
-						notFound++
-						return nil
-
-					} else if err != nil {
-						error_++
-						return err
-					}
-					found++
-					return nil
-				})
+                                txn.Renew()
+				_, err := txn.Get(lmdbDBI, key)
+				if lmdb.IsNotFound(err) {
+					notFound++
+				} else if err != nil {
+					error_++
+				} else {
+                                        found++
+                                }
+                                txn.Reset()
 			}
 			atomic.AddUint64(&totalFound, found)
 			atomic.AddUint64(&totalErr, error_)
 			atomic.AddUint64(&totalNotFound, notFound)
+
 		})
 	})
 	b.Logf("lmdb %d keys had valid values.", totalFound)
