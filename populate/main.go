@@ -160,7 +160,7 @@ func main() {
 		err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
 		y.Check(err)
 
-		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
+		err = lmdbEnv.Open(*dir+"/lmdb", lmdb.NoSync, 0777)
 		y.Check(err)
 
 		// Acquire handle
