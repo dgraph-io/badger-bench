@@ -20,7 +20,7 @@ $ ldconfig # to update ld.so.cache
 - Install badger bench
 
 ```
-$ go get https://github.com/dgraph-io/badger-bench
+$ go get github.com/dgraph-io/badger-bench
 ```
 
 - Run  `go test` and make sure everything compiles.
