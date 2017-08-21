@@ -319,6 +319,42 @@ func BenchmarkIterateLmdb(b *testing.B) {
 	})
 }
 
+func BenchmarkIterateBolt(b *testing.B) {
+	boltdb := getBoltDB()
+	defer boltdb.Close()
+
+	k := make([]byte, 1024)
+	v := make([]byte, Mi)
+	b.ResetTimer()
+
+	b.Run("boltdb-iterate", func(b *testing.B) {
+		for j := 0; j < b.N; j++ {
+			var count int
+			err := boltdb.View(func(txn *bolt.Tx) error {
+				boltBkt := txn.Bucket([]byte("bench"))
+				y.AssertTrue(boltBkt != nil)
+				cur := boltBkt.Cursor()
+				for k1, v1 := cur.First(); k1 != nil; k1, v1 = cur.Next() {
+					y.AssertTruef(len(v1) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v1), *flagValueSize)
+
+					// do some processing.
+					k = safecopy(k, k1)
+					v = safecopy(v, v1)
+
+					count++
+					print(count)
+					if count >= 2*Mi {
+						break
+					}
+				}
+				return nil
+			})
+			y.Check(err)
+			b.Logf("[%d] Counted %d keys\n", j, count)
+		}
+	})
+}
+
 func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 	bdb, err := getBadger()
 	y.Check(err)
