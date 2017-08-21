@@ -166,25 +166,25 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 	defer lmdbEnv.CloseDBI(lmdbDBI)
 
 	runRandomReadBenchmark(b, "lmdb", func(c *hitCounter, pb *testing.PB) {
-		for pb.Next() {
-			key := newKey()
-			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
-				txn.RawRead = true
+		err := lmdbEnv.View(func(txn *lmdb.Txn) error {
+			txn.RawRead = true
+			for pb.Next() {
+				key := newKey()
 				v, err := txn.Get(lmdbDBI, key)
 				if lmdb.IsNotFound(err) {
 					c.notFound++
-					return nil
-
+					continue
 				} else if err != nil {
-					return err
+					c.errored++
+					continue
 				}
 				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
 				c.found++
-				return nil
-			})
-			if err != nil {
-				c.errored++
 			}
+			return nil
+		})
+		if err != nil {
+			y.Check(err)
 		}
 	})
 }
