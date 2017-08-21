@@ -16,6 +16,7 @@ import (
 	"golang.org/x/net/trace"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
+	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/table"
@@ -27,7 +28,7 @@ import (
 const mil float64 = 1000000
 
 var (
-	which     = flag.String("kv", "badger", "Which KV store to use. Options: badger, rocksdb, lmdb")
+	which     = flag.String("kv", "badger", "Which KV store to use. Options: badger, rocksdb, lmdb, bolt")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 	dir       = flag.String("dir", "", "Base dir for writes.")
@@ -51,6 +52,7 @@ var bdb *badger.KV
 var rdb *store.Store
 var lmdbEnv *lmdb.Env
 var lmdbDBI lmdb.DBI
+var boltdb *bolt.DB
 
 func writeBatch(entries []*badger.Entry) int {
 	for _, e := range entries {
@@ -86,6 +88,21 @@ func writeBatch(entries []*badger.Entry) int {
 		})
 		y.Check(err)
 
+	}
+
+	if boltdb != nil {
+		err := boltdb.Update(func(txn *bolt.Tx) error {
+			boltBkt := txn.Bucket([]byte("bench"))
+			y.AssertTrue(boltBkt != nil)
+			for _, e := range entries {
+				err := boltBkt.Put(e.Key, e.Value)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		y.Check(err)
 	}
 
 	return len(entries)
@@ -172,6 +189,21 @@ func main() {
 			return err
 		})
 		y.Check(err)
+	} else if *which == "bolt" {
+		init = true
+		fmt.Println("Init BoldDB")
+		os.RemoveAll(*dir + "/bolt")
+		os.MkdirAll(*dir+"/bolt", 0777)
+		boltdb, err = bolt.Open(*dir+"/bolt/bolt.db", 0777, bolt.DefaultOptions)
+		y.Check(err)
+		boltdb.NoSync = true // Set this to speed up writes
+		err = boltdb.Update(func(txn *bolt.Tx) error {
+			var err error
+			_, err = txn.CreateBucketIfNotExists([]byte("bench"))
+			return err
+		})
+		y.Check(err)
+
 	} else {
 		log.Fatalf("Invalid value for option kv: '%s'", *which)
 	}
@@ -250,6 +282,11 @@ func main() {
 		fmt.Println("closing lmdb")
 		lmdbEnv.CloseDBI(lmdbDBI)
 		lmdbEnv.Close()
+	}
+
+	if boltdb != nil {
+		fmt.Println("closing bolt")
+		boltdb.Close()
 	}
 
 	fmt.Printf("\nWROTE %d KEYS\n", atomic.LoadInt64(&counter))
