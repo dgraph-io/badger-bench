@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
+	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/table"
@@ -59,6 +60,14 @@ func getLmdb() *lmdb.Env {
 	err = lmdbEnv.Open(*flagDir+"/lmdb", lmdb.Readonly, 0777)
 	y.Check(err)
 	return lmdbEnv
+}
+
+func getBoltDB() *bolt.DB {
+	opts := bolt.DefaultOptions
+	opts.ReadOnly = true
+	boltdb, err := bolt.Open(*flagDir+"/bolt/bolt.db", 0777, opts)
+	y.Check(err)
+	return boltdb
 }
 
 func newKey() []byte {
@@ -186,6 +195,30 @@ func BenchmarkReadRandomLmdb(b *testing.B) {
 		if err != nil {
 			y.Check(err)
 		}
+	})
+}
+
+func BenchmarkReadRandomBolt(b *testing.B) {
+	boltdb := getBoltDB()
+	defer boltdb.Close()
+
+	runRandomReadBenchmark(b, "bolt", func(c *hitCounter, pb *testing.PB) {
+		err := boltdb.View(func(txn *bolt.Tx) error {
+			boltBkt := txn.Bucket([]byte("bench"))
+			y.AssertTrue(boltBkt != nil)
+			for pb.Next() {
+				key := newKey()
+				v := boltBkt.Get(key)
+				if v == nil {
+					c.notFound++
+					continue
+				}
+				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
+				c.found++
+			}
+			return nil
+		})
+		y.Check(err)
 	})
 }
 
