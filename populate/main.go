@@ -191,7 +191,7 @@ func main() {
 		y.Check(err)
 	} else if *which == "bolt" {
 		init = true
-		fmt.Println("Init BoldDB")
+		fmt.Println("Init BoltDB")
 		os.RemoveAll(*dir + "/bolt")
 		os.MkdirAll(*dir+"/bolt", 0777)
 		boltdb, err = bolt.Open(*dir+"/bolt/bolt.db", 0777, bolt.DefaultOptions)
