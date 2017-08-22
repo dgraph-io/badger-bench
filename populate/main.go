@@ -95,8 +95,7 @@ func writeBatch(entries []*badger.Entry) int {
 			boltBkt := txn.Bucket([]byte("bench"))
 			y.AssertTrue(boltBkt != nil)
 			for _, e := range entries {
-				err := boltBkt.Put(e.Key, e.Value)
-				if err != nil {
+				if err := boltBkt.Put(e.Key, e.Value); err != nil {
 					return err
 				}
 			}
