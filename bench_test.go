@@ -47,7 +47,7 @@ func getRocks() *store.Store {
 	return rdb
 }
 
-func getLmdb(readahead bool) *lmdb.Env {
+func getLmdb() *lmdb.Env {
 	lmdbEnv, err := lmdb.NewEnv()
 	y.Check(err)
 	err = lmdbEnv.SetMaxReaders(math.MaxInt64)
@@ -57,11 +57,7 @@ func getLmdb(readahead bool) *lmdb.Env {
 	err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
 	y.Check(err)
 
-	var flags uint = lmdb.Readonly
-	if !readahead {
-		flags |= lmdb.NoReadahead
-	}
-	err = lmdbEnv.Open(*flagDir+"/lmdb", flags, 0777)
+	err = lmdbEnv.Open(*flagDir+"/lmdb", lmdb.Readonly|lmdb.NoReadahead, 0777)
 	y.Check(err)
 	return lmdbEnv
 }
@@ -165,7 +161,7 @@ func BenchmarkReadRandomRocks(b *testing.B) {
 }
 
 func BenchmarkReadRandomLmdb(b *testing.B) {
-	lmdbEnv := getLmdb(false)
+	lmdbEnv := getLmdb()
 	defer lmdbEnv.Close()
 
 	var lmdbDBI lmdb.DBI
@@ -264,7 +260,7 @@ func BenchmarkIterateRocks(b *testing.B) {
 }
 
 func BenchmarkIterateLmdb(b *testing.B) {
-	lmdbEnv := getLmdb(true)
+	lmdbEnv := getLmdb()
 	defer lmdbEnv.Close()
 
 	var lmdbDBI lmdb.DBI
