@@ -57,7 +57,7 @@ func getLmdb() *lmdb.Env {
 	err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
 	y.Check(err)
 
-	err = lmdbEnv.Open(*flagDir+"/lmdb", lmdb.Readonly, 0777)
+	err = lmdbEnv.Open(*flagDir+"/lmdb", lmdb.Readonly|lmdb.NoReadahead, 0777)
 	y.Check(err)
 	return lmdbEnv
 }
