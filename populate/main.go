@@ -19,7 +19,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
-	"github.com/dgraph-io/badger/table"
+	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
@@ -139,7 +139,8 @@ func main() {
 	nw := *numKeys * mil
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
-	opt.MapTablesTo = table.MemoryMap
+	opt.TableLoadingMode = options.MemoryMap
+	opt.ValueLogLoadingMode = options.MemoryMap
 	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *dir + "/badger"
 	opt.ValueDir = opt.Dir

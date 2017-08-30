@@ -16,7 +16,7 @@ import (
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
-	"github.com/dgraph-io/badger/table"
+	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
 )
 
@@ -32,7 +32,8 @@ const Mf float64 = 1000000
 
 func getBadger() (*badger.KV, error) {
 	opt := badger.DefaultOptions
-	opt.MapTablesTo = table.LoadToRAM
+	opt.TableLoadingMode = options.LoadToRAM
+	opt.ValueLogLoadingMode = options.MemoryMap
 	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
@@ -135,11 +136,21 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			err := bdb.Get(key, &item)
 			if err != nil {
 				c.errored++
-			} else if v := item.Value(); v != nil {
-				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
-				c.found++
 			} else {
-				c.notFound++
+				err := item.Value(func(val []byte) {
+					if val == nil {
+						c.notFound++
+						return
+					}
+					y.AssertTruef(len(val) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
+					c.found++
+
+				})
+
+				if err != nil {
+					c.errored++
+				}
+
 			}
 		}
 	})
@@ -399,18 +410,21 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 			var count int
 			opt := badger.IteratorOptions{}
 			opt.PrefetchSize = 10000
-			opt.FetchValues = true
+			opt.PrefetchValues = true
 			itr := bdb.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
-				vsz := len(item.Value())
-				y.AssertTruef(vsz == *flagValueSize, "Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
-				{
-					// do some processing.
-					k = safecopy(k, item.Key())
-					v = safecopy(v, item.Value())
-				}
-				count++
+				err := item.Value(func(val []byte) {
+					vsz := len(val)
+					y.AssertTruef(vsz == *flagValueSize, "Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
+					{
+						// do some processing.
+						k = safecopy(k, item.Key())
+						v = safecopy(v, val)
+					}
+					count++
+				})
+				y.Check(err)
 				print(count)
 				if count >= 2*Mi {
 					break
