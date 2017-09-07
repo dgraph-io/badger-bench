@@ -140,7 +140,6 @@ func main() {
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
 	opt := badger.DefaultOptions
 	opt.TableLoadingMode = options.MemoryMap
-	opt.ValueLogLoadingMode = options.MemoryMap
 	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *dir + "/badger"
 	opt.ValueDir = opt.Dir
