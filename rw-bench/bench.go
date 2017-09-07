@@ -111,7 +111,7 @@ func main() {
 	y.Check(bdg.BatchSet(entries))
 	iopt := badger.IteratorOptions{}
 	bistart := time.Now()
-	iopt.FetchValues = false
+	iopt.PrefetchValues = false
 	iopt.PrefetchSize = 1000
 	bitr := bdg.NewIterator(iopt)
 	count = 0
