@@ -136,14 +136,14 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			if err != nil {
 				c.errored++
 			} else {
-				err := item.Value(func(val []byte) {
+				err := item.Value(func(val []byte) error {
 					if val == nil {
 						c.notFound++
-						return
+						return nil
 					}
 					y.AssertTruef(len(val) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
 					c.found++
-
+					return nil
 				})
 
 				if err != nil {
@@ -413,7 +413,7 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 			itr := bdb.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
-				err := item.Value(func(val []byte) {
+				err := item.Value(func(val []byte) error {
 					vsz := len(val)
 					y.AssertTruef(vsz == *flagValueSize, "Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
 					{
@@ -422,6 +422,7 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 						v = safecopy(v, val)
 					}
 					count++
+					return nil
 				})
 				y.Check(err)
 				print(count)
