@@ -10,7 +10,6 @@ import (
 	"os"
 	"sync/atomic"
 	"testing"
-	"time"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/boltdb/bolt"
@@ -33,7 +32,6 @@ const Mf float64 = 1000000
 func getBadger() (*badger.KV, error) {
 	opt := badger.DefaultOptions
 	opt.TableLoadingMode = options.LoadToRAM
-	opt.ValueGCRunInterval = 10 * time.Hour
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
 	opt.DoNotCompact = true
