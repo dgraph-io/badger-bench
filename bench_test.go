@@ -376,7 +376,7 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 			var count int
 			// 100 = size, 0 = num workers, false = fwd direction.
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
+			opt.PrefetchSize = 256
 			txn := bdb.NewTransaction(false)
 			itr := txn.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
@@ -408,7 +408,7 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
+			opt.PrefetchSize = 256
 			opt.PrefetchValues = true
 			txn := bdb.NewTransaction(false)
 			itr := txn.NewIterator(opt)
