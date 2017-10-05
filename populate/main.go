@@ -35,7 +35,13 @@ var (
 	mode      = flag.String("profile.mode", "", "enable profiling mode, one of [cpu, mem, mutex, block]")
 )
 
-func fillEntry(e *badger.Entry) {
+type entry struct {
+	Key   []byte
+	Value []byte
+	Meta  byte
+}
+
+func fillEntry(e *entry) {
 	k := rand.Int() % int(*numKeys*mil)
 	key := fmt.Sprintf("vsz=%05d-k=%010d", *valueSize, k) // 22 bytes.
 	if cap(e.Key) < len(key) {
@@ -54,16 +60,18 @@ var lmdbEnv *lmdb.Env
 var lmdbDBI lmdb.DBI
 var boltdb *bolt.DB
 
-func writeBatch(entries []*badger.Entry) int {
+func writeBatch(entries []*entry) int {
 	for _, e := range entries {
 		fillEntry(e)
 	}
 
 	if bdb != nil {
-		bdb.BatchSet(entries)
+		txn := bdb.NewTransaction(true)
+
 		for _, e := range entries {
-			y.Check(e.Error)
+			y.Check(txn.Set(e.Key, e.Value, e.Meta))
 		}
+		y.Check(txn.Commit(nil))
 	}
 
 	if rdb != nil {
@@ -142,7 +150,7 @@ func main() {
 	opt.TableLoadingMode = options.MemoryMap
 	opt.Dir = *dir + "/badger"
 	opt.ValueDir = opt.Dir
-	opt.SyncWrites = false
+	opt.SyncWrites = true
 
 	var err error
 
@@ -177,7 +185,7 @@ func main() {
 		err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
 		y.Check(err)
 
-		err = lmdbEnv.Open(*dir+"/lmdb", lmdb.NoSync, 0777)
+		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
 		y.Check(err)
 
 		// Acquire handle
@@ -194,7 +202,7 @@ func main() {
 		os.MkdirAll(*dir+"/bolt", 0777)
 		boltdb, err = bolt.Open(*dir+"/bolt/bolt.db", 0777, bolt.DefaultOptions)
 		y.Check(err)
-		boltdb.NoSync = true // Set this to speed up writes
+		boltdb.NoSync = false // Set this to speed up writes
 		err = boltdb.Update(func(txn *bolt.Tx) error {
 			var err error
 			_, err = txn.CreateBucketIfNotExists([]byte("bench"))
@@ -241,9 +249,9 @@ func main() {
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(proc int) {
-			entries := make([]*badger.Entry, 1000)
+			entries := make([]*entry, 1000)
 			for i := 0; i < len(entries); i++ {
-				e := new(badger.Entry)
+				e := new(entry)
 				e.Key = make([]byte, 22)
 				e.Value = make([]byte, *valueSize)
 				entries[i] = e

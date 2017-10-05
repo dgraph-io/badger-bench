@@ -1,0 +1,973 @@
+Sync writes are set to true for all. The following commands have been used to
+populate data.
+
+============================================================================
+/usr/bin/time -v populate --kv badger --valsz 128 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv badger --valsz 1024 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv badger --valsz 16384 --keys_mil 1 --dir /data
+
+/usr/bin/time -v populate --kv lmdb --valsz 128 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv lmdb --valsz 1024 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv lmdb --valsz 16384 --keys_mil 1 --dir /data
+
+/usr/bin/time -v populate --kv bolt --valsz 128 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv bolt --valsz 1024 --keys_mil 1 --dir /data
+/usr/bin/time -v populate --kv bolt --valsz 16384 --keys_mil 1 --dir /data
+==========================================================================
+
+TOTAL KEYS TO WRITE:   1.00M
+Init Badger
+[0000] Write key rate per minute: 102.00K. Total: 102.00K
+[0001] Write key rate per minute: 229.00K. Total: 229.00K
+[0002] Write key rate per minute: 330.00K. Total: 330.00K
+[0003] Write key rate per minute: 421.00K. Total: 421.00K
+[0004] Write key rate per minute: 510.00K. Total: 510.00K
+[0005] Write key rate per minute: 606.00K. Total: 606.00K
+[0006] Write key rate per minute: 690.00K. Total: 690.00K
+[0007] Write key rate per minute: 774.00K. Total: 774.00K
+[0008] Write key rate per minute: 858.00K. Total: 858.00K
+[0009] Write key rate per minute: 942.00K. Total: 942.00K
+closing badger
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv badger --valsz 128 --keys_mil 1 --dir /data"
+	User time (seconds): 15.82
+	System time (seconds): 0.84
+	Percent of CPU this job got: 155%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:10.73
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 532912
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 64029
+	Voluntary context switches: 74684
+	Involuntary context switches: 759
+	Swaps: 0
+	File system inputs: 8
+	File system outputs: 414520
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init Badger
+[0000] Write key rate per minute:  61.00K. Total:  61.00K
+[0001] Write key rate per minute: 131.00K. Total: 131.00K
+[0002] Write key rate per minute: 191.00K. Total: 191.00K
+[0003] Write key rate per minute: 253.00K. Total: 253.00K
+[0004] Write key rate per minute: 313.00K. Total: 313.00K
+[0005] Write key rate per minute: 373.00K. Total: 373.00K
+[0006] Write key rate per minute: 443.00K. Total: 443.00K
+[0007] Write key rate per minute: 503.00K. Total: 503.00K
+[0008] Write key rate per minute: 565.00K. Total: 565.00K
+[0009] Write key rate per minute: 625.00K. Total: 625.00K
+[0010] Write key rate per minute: 685.00K. Total: 685.00K
+[0011] Write key rate per minute: 733.00K. Total: 733.00K
+[0012] Write key rate per minute: 791.00K. Total: 791.00K
+[0013] Write key rate per minute: 851.00K. Total: 851.00K
+[0014] Write key rate per minute: 901.00K. Total: 901.00K
+[0015] Write key rate per minute: 973.00K. Total: 973.00K
+closing badger
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv badger --valsz 1024 --keys_mil 1 --dir /data"
+	User time (seconds): 19.78
+	System time (seconds): 2.38
+	Percent of CPU this job got: 133%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:16.58
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 559124
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 136617
+	Voluntary context switches: 173641
+	Involuntary context switches: 1220
+	Swaps: 0
+	File system inputs: 72
+	File system outputs: 2177568
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init Badger
+[0000] Write key rate per minute:   1.00K. Total:   1.00K
+[0001] Write key rate per minute:  13.00K. Total:  13.00K
+[0002] Write key rate per minute:  25.00K. Total:  25.00K
+[0003] Write key rate per minute:  37.00K. Total:  37.00K
+[0004] Write key rate per minute:  49.00K. Total:  49.00K
+[0005] Write key rate per minute:  61.00K. Total:  61.00K
+[0006] Write key rate per minute:  73.00K. Total:  73.00K
+[0007] Write key rate per minute:  85.00K. Total:  85.00K
+[0008] Write key rate per minute:  97.00K. Total:  97.00K
+[0009] Write key rate per minute: 109.00K. Total: 109.00K
+[0010] Write key rate per minute: 121.00K. Total: 121.00K
+[0011] Write key rate per minute: 133.00K. Total: 133.00K
+[0012] Write key rate per minute: 145.00K. Total: 145.00K
+[0013] Write key rate per minute: 157.00K. Total: 157.00K
+[0014] Write key rate per minute: 180.00K. Total: 180.00K
+[0015] Write key rate per minute: 192.00K. Total: 192.00K
+[0016] Write key rate per minute: 204.00K. Total: 204.00K
+[0017] Write key rate per minute: 216.00K. Total: 216.00K
+[0018] Write key rate per minute: 228.00K. Total: 228.00K
+[0019] Write key rate per minute: 229.00K. Total: 229.00K
+[0020] Write key rate per minute: 239.00K. Total: 239.00K
+[0021] Write key rate per minute: 251.00K. Total: 251.00K
+[0022] Write key rate per minute: 263.00K. Total: 263.00K
+[0023] Write key rate per minute: 275.00K. Total: 275.00K
+[0024] Write key rate per minute: 287.00K. Total: 287.00K
+[0025] Write key rate per minute: 301.00K. Total: 301.00K
+[0026] Write key rate per minute: 313.00K. Total: 313.00K
+[0027] Write key rate per minute: 325.00K. Total: 325.00K
+[0028] Write key rate per minute: 347.00K. Total: 347.00K
+[0029] Write key rate per minute: 359.00K. Total: 359.00K
+[0030] Write key rate per minute: 373.00K. Total: 373.00K
+[0031] Write key rate per minute: 385.00K. Total: 385.00K
+[0032] Write key rate per minute: 397.00K. Total: 397.00K
+[0033] Write key rate per minute: 409.00K. Total: 409.00K
+[0034] Write key rate per minute: 421.00K. Total: 421.00K
+[0035] Write key rate per minute: 433.00K. Total: 433.00K
+[0036] Write key rate per minute: 445.00K. Total: 445.00K
+[0037] Write key rate per minute: 467.00K. Total: 467.00K
+[0038] Write key rate per minute: 479.00K. Total: 479.00K
+[0039] Write key rate per minute: 491.00K. Total: 491.00K
+[0040] Write key rate per minute: 503.00K. Total: 503.00K
+[0041] Write key rate per minute: 515.00K. Total: 515.00K
+[0042] Write key rate per minute: 527.00K. Total: 527.00K
+[0043] Write key rate per minute: 541.00K. Total: 541.00K
+[0044] Write key rate per minute: 553.00K. Total: 553.00K
+[0045] Write key rate per minute: 565.00K. Total: 565.00K
+[0046] Write key rate per minute: 577.00K. Total: 577.00K
+[0047] Write key rate per minute: 589.00K. Total: 589.00K
+[0048] Write key rate per minute: 611.00K. Total: 611.00K
+[0049] Write key rate per minute: 623.00K. Total: 623.00K
+[0050] Write key rate per minute: 635.00K. Total: 635.00K
+[0051] Write key rate per minute: 647.00K. Total: 647.00K
+[0052] Write key rate per minute: 659.00K. Total: 659.00K
+[0053] Write key rate per minute: 671.00K. Total: 671.00K
+[0054] Write key rate per minute: 685.00K. Total: 685.00K
+[0055] Write key rate per minute: 697.00K. Total: 697.00K
+[0056] Write key rate per minute: 719.00K. Total: 719.00K
+[0057] Write key rate per minute: 731.00K. Total: 731.00K
+[0058] Write key rate per minute: 743.00K. Total: 743.00K
+[0059] Write key rate per minute: 755.00K. Total: 755.00K
+[0060] Write key rate per minute: 731.00K. Total: 767.00K
+[0061] Write key rate per minute: 745.00K. Total: 781.00K
+[0062] Write key rate per minute: 757.00K. Total: 793.00K
+[0063] Write key rate per minute: 743.00K. Total: 815.00K
+[0064] Write key rate per minute: 755.00K. Total: 827.00K
+[0065] Write key rate per minute: 757.00K. Total: 829.00K
+[0066] Write key rate per minute: 731.00K. Total: 839.00K
+[0067] Write key rate per minute: 743.00K. Total: 851.00K
+[0068] Write key rate per minute: 755.00K. Total: 863.00K
+[0069] Write key rate per minute: 730.00K. Total: 875.00K
+[0070] Write key rate per minute: 742.00K. Total: 887.00K
+[0071] Write key rate per minute: 754.00K. Total: 899.00K
+[0072] Write key rate per minute: 721.00K. Total: 913.00K
+[0073] Write key rate per minute: 733.00K. Total: 925.00K
+[0074] Write key rate per minute: 743.00K. Total: 935.00K
+[0075] Write key rate per minute: 730.00K. Total: 947.00K
+[0076] Write key rate per minute: 744.00K. Total: 961.00K
+[0077] Write key rate per minute: 756.00K. Total: 973.00K
+[0078] Write key rate per minute: 732.00K. Total: 983.00K
+[0079] Write key rate per minute: 746.00K. Total: 997.00K
+closing badger
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv badger --valsz 16384 --keys_mil 1 --dir /data"
+	User time (seconds): 86.39
+	System time (seconds): 19.86
+	Percent of CPU this job got: 131%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:20.71
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1231752
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 734320
+	Voluntary context switches: 1395616
+	Involuntary context switches: 1215
+	Swaps: 0
+	File system inputs: 1048
+	File system outputs: 32403488
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init lmdb
+[0000] Write key rate per minute:  58.00K. Total:  58.00K
+[0001] Write key rate per minute: 105.00K. Total: 105.00K
+[0002] Write key rate per minute: 149.00K. Total: 149.00K
+[0003] Write key rate per minute: 195.00K. Total: 195.00K
+[0004] Write key rate per minute: 239.00K. Total: 239.00K
+[0005] Write key rate per minute: 283.00K. Total: 283.00K
+[0006] Write key rate per minute: 326.00K. Total: 326.00K
+[0007] Write key rate per minute: 369.00K. Total: 369.00K
+[0008] Write key rate per minute: 411.00K. Total: 411.00K
+[0009] Write key rate per minute: 452.00K. Total: 452.00K
+[0010] Write key rate per minute: 493.00K. Total: 493.00K
+[0011] Write key rate per minute: 536.00K. Total: 536.00K
+[0012] Write key rate per minute: 576.00K. Total: 576.00K
+[0013] Write key rate per minute: 616.00K. Total: 616.00K
+[0014] Write key rate per minute: 657.00K. Total: 657.00K
+[0015] Write key rate per minute: 696.00K. Total: 696.00K
+[0016] Write key rate per minute: 738.00K. Total: 738.00K
+[0017] Write key rate per minute: 779.00K. Total: 779.00K
+[0018] Write key rate per minute: 818.00K. Total: 818.00K
+[0019] Write key rate per minute: 858.00K. Total: 858.00K
+[0020] Write key rate per minute: 897.00K. Total: 897.00K
+[0021] Write key rate per minute: 937.00K. Total: 937.00K
+[0022] Write key rate per minute: 976.00K. Total: 976.00K
+closing lmdb
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv lmdb --valsz 128 --keys_mil 1 --dir /data"
+	User time (seconds): 6.77
+	System time (seconds): 10.70
+	Percent of CPU this job got: 73%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:23.82
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 190904
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 11119
+	Voluntary context switches: 75166
+	Involuntary context switches: 1244
+	Swaps: 0
+	File system inputs: 16
+	File system outputs: 9885784
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init lmdb
+[0000] Write key rate per minute:  36.00K. Total:  36.00K
+[0001] Write key rate per minute:  69.00K. Total:  69.00K
+[0002] Write key rate per minute: 100.00K. Total: 100.00K
+[0003] Write key rate per minute: 134.00K. Total: 134.00K
+[0004] Write key rate per minute: 166.00K. Total: 166.00K
+[0005] Write key rate per minute: 196.00K. Total: 196.00K
+[0006] Write key rate per minute: 226.00K. Total: 226.00K
+[0007] Write key rate per minute: 254.00K. Total: 254.00K
+[0008] Write key rate per minute: 282.00K. Total: 282.00K
+[0009] Write key rate per minute: 310.00K. Total: 310.00K
+[0010] Write key rate per minute: 339.00K. Total: 339.00K
+[0011] Write key rate per minute: 367.00K. Total: 367.00K
+[0012] Write key rate per minute: 395.00K. Total: 395.00K
+[0013] Write key rate per minute: 423.00K. Total: 423.00K
+[0014] Write key rate per minute: 450.00K. Total: 450.00K
+[0015] Write key rate per minute: 478.00K. Total: 478.00K
+[0016] Write key rate per minute: 506.00K. Total: 506.00K
+[0017] Write key rate per minute: 533.00K. Total: 533.00K
+[0018] Write key rate per minute: 561.00K. Total: 561.00K
+[0019] Write key rate per minute: 589.00K. Total: 589.00K
+[0020] Write key rate per minute: 616.00K. Total: 616.00K
+[0021] Write key rate per minute: 645.00K. Total: 645.00K
+[0022] Write key rate per minute: 673.00K. Total: 673.00K
+[0023] Write key rate per minute: 702.00K. Total: 702.00K
+[0024] Write key rate per minute: 731.00K. Total: 731.00K
+[0025] Write key rate per minute: 759.00K. Total: 759.00K
+[0026] Write key rate per minute: 786.00K. Total: 786.00K
+[0027] Write key rate per minute: 813.00K. Total: 813.00K
+[0028] Write key rate per minute: 841.00K. Total: 841.00K
+[0029] Write key rate per minute: 868.00K. Total: 868.00K
+[0030] Write key rate per minute: 896.00K. Total: 896.00K
+[0031] Write key rate per minute: 924.00K. Total: 924.00K
+[0032] Write key rate per minute: 953.00K. Total: 953.00K
+[0033] Write key rate per minute: 982.00K. Total: 982.00K
+closing lmdb
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv lmdb --valsz 1024 --keys_mil 1 --dir /data"
+	User time (seconds): 13.20
+	System time (seconds): 18.41
+	Percent of CPU this job got: 90%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:35.07
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1348980
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 82266
+	Voluntary context switches: 76032
+	Involuntary context switches: 1347
+	Swaps: 0
+	File system inputs: 88
+	File system outputs: 16603280
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init lmdb
+[0000] Write key rate per minute:  10.00K. Total:  10.00K
+[0001] Write key rate per minute:  28.00K. Total:  28.00K
+[0002] Write key rate per minute:  38.00K. Total:  38.00K
+[0003] Write key rate per minute:  53.00K. Total:  53.00K
+[0004] Write key rate per minute:  69.00K. Total:  69.00K
+[0005] Write key rate per minute:  85.00K. Total:  85.00K
+[0006] Write key rate per minute: 100.00K. Total: 100.00K
+[0007] Write key rate per minute: 116.00K. Total: 116.00K
+[0008] Write key rate per minute: 131.00K. Total: 131.00K
+[0009] Write key rate per minute: 146.00K. Total: 146.00K
+[0010] Write key rate per minute: 163.00K. Total: 163.00K
+[0011] Write key rate per minute: 179.00K. Total: 179.00K
+[0012] Write key rate per minute: 194.00K. Total: 194.00K
+[0013] Write key rate per minute: 209.00K. Total: 209.00K
+[0014] Write key rate per minute: 224.00K. Total: 224.00K
+[0015] Write key rate per minute: 240.00K. Total: 240.00K
+[0016] Write key rate per minute: 253.00K. Total: 253.00K
+[0017] Write key rate per minute: 270.00K. Total: 270.00K
+[0018] Write key rate per minute: 285.00K. Total: 285.00K
+[0019] Write key rate per minute: 300.00K. Total: 300.00K
+[0020] Write key rate per minute: 316.00K. Total: 316.00K
+[0021] Write key rate per minute: 333.00K. Total: 333.00K
+[0022] Write key rate per minute: 348.00K. Total: 348.00K
+[0023] Write key rate per minute: 363.00K. Total: 363.00K
+[0024] Write key rate per minute: 381.00K. Total: 381.00K
+[0025] Write key rate per minute: 397.00K. Total: 397.00K
+[0026] Write key rate per minute: 413.00K. Total: 413.00K
+[0027] Write key rate per minute: 427.00K. Total: 427.00K
+[0028] Write key rate per minute: 443.00K. Total: 443.00K
+[0029] Write key rate per minute: 459.00K. Total: 459.00K
+[0030] Write key rate per minute: 473.00K. Total: 473.00K
+[0031] Write key rate per minute: 489.00K. Total: 489.00K
+[0032] Write key rate per minute: 507.00K. Total: 507.00K
+[0033] Write key rate per minute: 525.00K. Total: 525.00K
+[0034] Write key rate per minute: 543.00K. Total: 543.00K
+[0035] Write key rate per minute: 560.00K. Total: 560.00K
+[0036] Write key rate per minute: 575.00K. Total: 575.00K
+[0037] Write key rate per minute: 592.00K. Total: 592.00K
+[0038] Write key rate per minute: 608.00K. Total: 608.00K
+[0039] Write key rate per minute: 624.00K. Total: 624.00K
+[0040] Write key rate per minute: 640.00K. Total: 640.00K
+[0041] Write key rate per minute: 656.00K. Total: 656.00K
+[0042] Write key rate per minute: 671.00K. Total: 671.00K
+[0043] Write key rate per minute: 688.00K. Total: 688.00K
+[0044] Write key rate per minute: 704.00K. Total: 704.00K
+[0045] Write key rate per minute: 720.00K. Total: 720.00K
+[0046] Write key rate per minute: 735.00K. Total: 735.00K
+[0047] Write key rate per minute: 751.00K. Total: 751.00K
+[0048] Write key rate per minute: 766.00K. Total: 766.00K
+[0049] Write key rate per minute: 783.00K. Total: 783.00K
+[0050] Write key rate per minute: 799.00K. Total: 799.00K
+[0051] Write key rate per minute: 815.00K. Total: 815.00K
+[0052] Write key rate per minute: 830.00K. Total: 830.00K
+[0053] Write key rate per minute: 845.00K. Total: 845.00K
+[0054] Write key rate per minute: 862.00K. Total: 862.00K
+[0055] Write key rate per minute: 877.00K. Total: 877.00K
+[0056] Write key rate per minute: 893.00K. Total: 893.00K
+[0057] Write key rate per minute: 909.00K. Total: 909.00K
+[0058] Write key rate per minute: 923.00K. Total: 923.00K
+[0059] Write key rate per minute: 939.00K. Total: 939.00K
+[0060] Write key rate per minute: 911.00K. Total: 955.00K
+[0061] Write key rate per minute: 926.00K. Total: 970.00K
+[0062] Write key rate per minute: 943.00K. Total: 987.00K
+[0063] Write key rate per minute: 912.00K. Total:   1.00M
+closing lmdb
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv lmdb --valsz 16384 --keys_mil 1 --dir /data"
+	User time (seconds): 84.95
+	System time (seconds): 36.75
+	Percent of CPU this job got: 187%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:04.80
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 10369648
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 1
+	Minor (reclaiming a frame) page faults: 2275134
+	Voluntary context switches: 1066290
+	Involuntary context switches: 1772
+	Swaps: 0
+	File system inputs: 824
+	File system outputs: 47802024
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init BoltDB
+[0000] Write key rate per minute:  60.00K. Total:  60.00K
+[0001] Write key rate per minute: 108.00K. Total: 108.00K
+[0002] Write key rate per minute: 144.00K. Total: 144.00K
+[0003] Write key rate per minute: 192.00K. Total: 192.00K
+[0004] Write key rate per minute: 240.00K. Total: 240.00K
+[0005] Write key rate per minute: 276.00K. Total: 276.00K
+[0006] Write key rate per minute: 324.00K. Total: 324.00K
+[0007] Write key rate per minute: 360.00K. Total: 360.00K
+[0008] Write key rate per minute: 396.00K. Total: 396.00K
+[0009] Write key rate per minute: 444.00K. Total: 444.00K
+[0010] Write key rate per minute: 480.00K. Total: 480.00K
+[0011] Write key rate per minute: 516.00K. Total: 516.00K
+[0012] Write key rate per minute: 552.00K. Total: 552.00K
+[0013] Write key rate per minute: 588.00K. Total: 588.00K
+[0014] Write key rate per minute: 636.00K. Total: 636.00K
+[0015] Write key rate per minute: 661.00K. Total: 661.00K
+[0016] Write key rate per minute: 697.00K. Total: 697.00K
+[0017] Write key rate per minute: 733.00K. Total: 733.00K
+[0018] Write key rate per minute: 769.00K. Total: 769.00K
+[0019] Write key rate per minute: 805.00K. Total: 805.00K
+[0020] Write key rate per minute: 841.00K. Total: 841.00K
+[0021] Write key rate per minute: 877.00K. Total: 877.00K
+[0022] Write key rate per minute: 901.00K. Total: 901.00K
+[0023] Write key rate per minute: 937.00K. Total: 937.00K
+[0024] Write key rate per minute: 961.00K. Total: 961.00K
+[0025] Write key rate per minute: 997.00K. Total: 997.00K
+closing bolt
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv bolt --valsz 128 --keys_mil 1 --dir /data"
+	User time (seconds): 33.00
+	System time (seconds): 5.53
+	Percent of CPU this job got: 147%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:26.10
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 363976
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 148198
+	Voluntary context switches: 115123
+	Involuntary context switches: 1567
+	Swaps: 0
+	File system inputs: 16
+	File system outputs: 6144688
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init BoltDB
+[0000] Write key rate per minute:  26.00K. Total:  26.00K
+[0001] Write key rate per minute:  60.00K. Total:  60.00K
+[0002] Write key rate per minute:  86.00K. Total:  86.00K
+[0003] Write key rate per minute: 110.00K. Total: 110.00K
+[0004] Write key rate per minute: 132.00K. Total: 132.00K
+[0005] Write key rate per minute: 153.00K. Total: 153.00K
+[0006] Write key rate per minute: 175.00K. Total: 175.00K
+[0007] Write key rate per minute: 196.00K. Total: 196.00K
+[0008] Write key rate per minute: 216.00K. Total: 216.00K
+[0009] Write key rate per minute: 235.00K. Total: 235.00K
+[0010] Write key rate per minute: 254.00K. Total: 254.00K
+[0011] Write key rate per minute: 273.00K. Total: 273.00K
+[0012] Write key rate per minute: 292.00K. Total: 292.00K
+[0013] Write key rate per minute: 314.00K. Total: 314.00K
+[0014] Write key rate per minute: 331.00K. Total: 331.00K
+[0015] Write key rate per minute: 350.00K. Total: 350.00K
+[0016] Write key rate per minute: 369.00K. Total: 369.00K
+[0017] Write key rate per minute: 386.00K. Total: 386.00K
+[0018] Write key rate per minute: 403.00K. Total: 403.00K
+[0019] Write key rate per minute: 423.00K. Total: 424.00K
+[0020] Write key rate per minute: 441.00K. Total: 441.00K
+[0021] Write key rate per minute: 458.00K. Total: 458.00K
+[0022] Write key rate per minute: 477.00K. Total: 477.00K
+[0023] Write key rate per minute: 496.00K. Total: 496.00K
+[0024] Write key rate per minute: 513.00K. Total: 513.00K
+[0025] Write key rate per minute: 530.00K. Total: 530.00K
+[0026] Write key rate per minute: 549.00K. Total: 549.00K
+[0027] Write key rate per minute: 568.00K. Total: 568.00K
+[0028] Write key rate per minute: 585.00K. Total: 585.00K
+[0029] Write key rate per minute: 604.00K. Total: 604.00K
+[0030] Write key rate per minute: 621.00K. Total: 621.00K
+[0031] Write key rate per minute: 640.00K. Total: 640.00K
+[0032] Write key rate per minute: 657.00K. Total: 657.00K
+[0033] Write key rate per minute: 674.00K. Total: 674.00K
+[0034] Write key rate per minute: 691.00K. Total: 691.00K
+[0035] Write key rate per minute: 710.00K. Total: 710.00K
+[0036] Write key rate per minute: 727.00K. Total: 727.00K
+[0037] Write key rate per minute: 746.00K. Total: 746.00K
+[0038] Write key rate per minute: 765.00K. Total: 765.00K
+[0039] Write key rate per minute: 784.00K. Total: 784.00K
+[0040] Write key rate per minute: 801.00K. Total: 801.00K
+[0041] Write key rate per minute: 818.00K. Total: 818.00K
+[0042] Write key rate per minute: 837.00K. Total: 837.00K
+[0043] Write key rate per minute: 854.00K. Total: 854.00K
+[0044] Write key rate per minute: 873.00K. Total: 873.00K
+[0045] Write key rate per minute: 890.00K. Total: 890.00K
+[0046] Write key rate per minute: 909.00K. Total: 909.00K
+[0047] Write key rate per minute: 928.00K. Total: 928.00K
+[0048] Write key rate per minute: 945.00K. Total: 945.00K
+[0049] Write key rate per minute: 964.00K. Total: 964.00K
+[0050] Write key rate per minute: 981.00K. Total: 981.00K
+[0051] Write key rate per minute: 998.00K. Total: 998.00K
+closing bolt
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv bolt --valsz 1024 --keys_mil 1 --dir /data"
+	User time (seconds): 56.32
+	System time (seconds): 15.84
+	Percent of CPU this job got: 136%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:52.70
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1178440
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 285102
+	Voluntary context switches: 267350
+	Involuntary context switches: 3356
+	Swaps: 0
+	File system inputs: 80
+	File system outputs: 16557064
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+TOTAL KEYS TO WRITE:   1.00M
+Init BoltDB
+[0000] Write key rate per minute:   5.00K. Total:   5.00K
+[0001] Write key rate per minute:  13.00K. Total:  13.00K
+[0002] Write key rate per minute:  18.00K. Total:  18.00K
+[0003] Write key rate per minute:  24.00K. Total:  24.00K
+[0004] Write key rate per minute:  29.00K. Total:  29.00K
+[0005] Write key rate per minute:  34.00K. Total:  34.00K
+[0006] Write key rate per minute:  38.00K. Total:  38.00K
+[0007] Write key rate per minute:  43.00K. Total:  43.00K
+[0008] Write key rate per minute:  47.00K. Total:  47.00K
+[0009] Write key rate per minute:  51.00K. Total:  51.00K
+[0010] Write key rate per minute:  55.00K. Total:  55.00K
+[0011] Write key rate per minute:  59.00K. Total:  59.00K
+[0012] Write key rate per minute:  63.00K. Total:  63.00K
+[0013] Write key rate per minute:  67.00K. Total:  67.00K
+[0014] Write key rate per minute:  71.00K. Total:  71.00K
+[0015] Write key rate per minute:  75.00K. Total:  75.00K
+[0016] Write key rate per minute:  79.00K. Total:  79.00K
+[0017] Write key rate per minute:  82.00K. Total:  82.00K
+[0018] Write key rate per minute:  86.00K. Total:  86.00K
+[0019] Write key rate per minute:  90.00K. Total:  90.00K
+[0020] Write key rate per minute:  94.00K. Total:  94.00K
+[0021] Write key rate per minute:  97.00K. Total:  97.00K
+[0022] Write key rate per minute: 100.00K. Total: 100.00K
+[0023] Write key rate per minute: 104.00K. Total: 104.00K
+[0024] Write key rate per minute: 107.00K. Total: 107.00K
+[0025] Write key rate per minute: 111.00K. Total: 111.00K
+[0026] Write key rate per minute: 114.00K. Total: 114.00K
+[0027] Write key rate per minute: 117.00K. Total: 117.00K
+[0028] Write key rate per minute: 121.00K. Total: 121.00K
+[0029] Write key rate per minute: 124.00K. Total: 124.00K
+[0030] Write key rate per minute: 128.00K. Total: 128.00K
+[0031] Write key rate per minute: 131.00K. Total: 131.00K
+[0032] Write key rate per minute: 134.00K. Total: 134.00K
+[0033] Write key rate per minute: 138.00K. Total: 138.00K
+[0034] Write key rate per minute: 141.00K. Total: 141.00K
+[0035] Write key rate per minute: 145.00K. Total: 145.00K
+[0036] Write key rate per minute: 148.00K. Total: 148.00K
+[0037] Write key rate per minute: 151.00K. Total: 151.00K
+[0038] Write key rate per minute: 155.00K. Total: 155.00K
+[0039] Write key rate per minute: 158.00K. Total: 158.00K
+[0040] Write key rate per minute: 161.00K. Total: 161.00K
+[0041] Write key rate per minute: 165.00K. Total: 165.00K
+[0042] Write key rate per minute: 168.00K. Total: 168.00K
+[0043] Write key rate per minute: 171.00K. Total: 171.00K
+[0044] Write key rate per minute: 175.00K. Total: 175.00K
+[0045] Write key rate per minute: 178.00K. Total: 178.00K
+[0046] Write key rate per minute: 181.00K. Total: 181.00K
+[0047] Write key rate per minute: 184.00K. Total: 184.00K
+[0048] Write key rate per minute: 188.00K. Total: 188.00K
+[0049] Write key rate per minute: 191.00K. Total: 191.00K
+[0050] Write key rate per minute: 194.00K. Total: 194.00K
+[0051] Write key rate per minute: 197.00K. Total: 197.00K
+[0052] Write key rate per minute: 200.00K. Total: 200.00K
+[0053] Write key rate per minute: 203.00K. Total: 203.00K
+[0054] Write key rate per minute: 206.00K. Total: 206.00K
+[0055] Write key rate per minute: 209.00K. Total: 209.00K
+[0056] Write key rate per minute: 212.00K. Total: 212.00K
+[0057] Write key rate per minute: 215.00K. Total: 215.00K
+[0058] Write key rate per minute: 218.00K. Total: 218.00K
+[0059] Write key rate per minute: 221.00K. Total: 221.00K
+[0060] Write key rate per minute: 204.00K. Total: 225.00K
+[0061] Write key rate per minute: 206.00K. Total: 227.00K
+[0062] Write key rate per minute: 210.00K. Total: 231.00K
+[0063] Write key rate per minute: 197.00K. Total: 233.00K
+[0064] Write key rate per minute: 200.00K. Total: 236.00K
+[0065] Write key rate per minute: 203.00K. Total: 239.00K
+[0066] Write key rate per minute: 194.00K. Total: 242.00K
+[0067] Write key rate per minute: 197.00K. Total: 245.00K
+[0068] Write key rate per minute: 200.00K. Total: 248.00K
+[0069] Write key rate per minute: 191.00K. Total: 251.00K
+[0070] Write key rate per minute: 194.00K. Total: 254.00K
+[0071] Write key rate per minute: 197.00K. Total: 257.00K
+[0072] Write key rate per minute: 187.00K. Total: 260.00K
+[0073] Write key rate per minute: 189.00K. Total: 262.00K
+[0074] Write key rate per minute: 192.00K. Total: 265.00K
+[0075] Write key rate per minute: 184.00K. Total: 268.00K
+[0076] Write key rate per minute: 187.00K. Total: 271.00K
+[0077] Write key rate per minute: 190.00K. Total: 274.00K
+[0078] Write key rate per minute: 181.00K. Total: 276.00K
+[0079] Write key rate per minute: 184.00K. Total: 279.00K
+[0080] Write key rate per minute: 187.00K. Total: 282.00K
+[0081] Write key rate per minute: 180.00K. Total: 285.00K
+[0082] Write key rate per minute: 183.00K. Total: 288.00K
+[0083] Write key rate per minute: 186.00K. Total: 291.00K
+[0084] Write key rate per minute: 178.00K. Total: 293.00K
+[0085] Write key rate per minute: 181.00K. Total: 296.00K
+[0086] Write key rate per minute: 184.00K. Total: 299.00K
+[0087] Write key rate per minute: 176.00K. Total: 302.00K
+[0088] Write key rate per minute: 179.00K. Total: 305.00K
+[0089] Write key rate per minute: 181.00K. Total: 307.00K
+[0090] Write key rate per minute: 174.00K. Total: 310.00K
+[0091] Write key rate per minute: 177.00K. Total: 313.00K
+[0092] Write key rate per minute: 179.00K. Total: 315.00K
+[0093] Write key rate per minute: 172.00K. Total: 318.00K
+[0094] Write key rate per minute: 175.00K. Total: 321.00K
+[0095] Write key rate per minute: 177.00K. Total: 323.00K
+[0096] Write key rate per minute: 170.00K. Total: 326.00K
+[0097] Write key rate per minute: 173.00K. Total: 329.00K
+[0098] Write key rate per minute: 175.00K. Total: 331.00K
+[0099] Write key rate per minute: 168.00K. Total: 334.00K
+[0100] Write key rate per minute: 170.00K. Total: 336.00K
+[0101] Write key rate per minute: 173.00K. Total: 339.00K
+[0102] Write key rate per minute: 165.00K. Total: 341.00K
+[0103] Write key rate per minute: 168.00K. Total: 344.00K
+[0104] Write key rate per minute: 171.00K. Total: 347.00K
+[0105] Write key rate per minute: 163.00K. Total: 349.00K
+[0106] Write key rate per minute: 166.00K. Total: 352.00K
+[0107] Write key rate per minute: 168.00K. Total: 354.00K
+[0108] Write key rate per minute: 162.00K. Total: 357.00K
+[0109] Write key rate per minute: 164.00K. Total: 359.00K
+[0110] Write key rate per minute: 167.00K. Total: 362.00K
+[0111] Write key rate per minute: 161.00K. Total: 365.00K
+[0112] Write key rate per minute: 164.00K. Total: 368.00K
+[0113] Write key rate per minute: 166.00K. Total: 370.00K
+[0114] Write key rate per minute: 160.00K. Total: 373.00K
+[0115] Write key rate per minute: 162.00K. Total: 375.00K
+[0116] Write key rate per minute: 165.00K. Total: 378.00K
+[0117] Write key rate per minute: 157.00K. Total: 380.00K
+[0118] Write key rate per minute: 160.00K. Total: 383.00K
+[0119] Write key rate per minute: 162.00K. Total: 385.00K
+[0120] Write key rate per minute: 156.00K. Total: 388.00K
+[0121] Write key rate per minute: 158.00K. Total: 390.00K
+[0122] Write key rate per minute: 161.00K. Total: 393.00K
+[0123] Write key rate per minute: 154.00K. Total: 395.00K
+[0124] Write key rate per minute: 157.00K. Total: 398.00K
+[0125] Write key rate per minute: 160.00K. Total: 401.00K
+[0126] Write key rate per minute: 154.00K. Total: 403.00K
+[0127] Write key rate per minute: 156.00K. Total: 405.00K
+[0128] Write key rate per minute: 159.00K. Total: 408.00K
+[0129] Write key rate per minute: 152.00K. Total: 410.00K
+[0130] Write key rate per minute: 155.00K. Total: 413.00K
+[0131] Write key rate per minute: 157.00K. Total: 415.00K
+[0132] Write key rate per minute: 152.00K. Total: 418.00K
+[0133] Write key rate per minute: 154.00K. Total: 420.00K
+[0134] Write key rate per minute: 157.00K. Total: 423.00K
+[0135] Write key rate per minute: 150.00K. Total: 425.00K
+[0136] Write key rate per minute: 152.00K. Total: 427.00K
+[0137] Write key rate per minute: 155.00K. Total: 430.00K
+[0138] Write key rate per minute: 149.00K. Total: 432.00K
+[0139] Write key rate per minute: 152.00K. Total: 435.00K
+[0140] Write key rate per minute: 155.00K. Total: 438.00K
+[0141] Write key rate per minute: 148.00K. Total: 440.00K
+[0142] Write key rate per minute: 151.00K. Total: 443.00K
+[0143] Write key rate per minute: 153.00K. Total: 445.00K
+[0144] Write key rate per minute: 148.00K. Total: 448.00K
+[0145] Write key rate per minute: 150.00K. Total: 450.00K
+[0146] Write key rate per minute: 153.00K. Total: 453.00K
+[0147] Write key rate per minute: 147.00K. Total: 456.00K
+[0148] Write key rate per minute: 149.00K. Total: 458.00K
+[0149] Write key rate per minute: 151.00K. Total: 460.00K
+[0150] Write key rate per minute: 146.00K. Total: 462.00K
+[0151] Write key rate per minute: 149.00K. Total: 465.00K
+[0152] Write key rate per minute: 151.00K. Total: 467.00K
+[0153] Write key rate per minute: 144.00K. Total: 469.00K
+[0154] Write key rate per minute: 146.00K. Total: 471.00K
+[0155] Write key rate per minute: 149.00K. Total: 474.00K
+[0156] Write key rate per minute: 144.00K. Total: 476.00K
+[0157] Write key rate per minute: 146.00K. Total: 478.00K
+[0158] Write key rate per minute: 149.00K. Total: 481.00K
+[0159] Write key rate per minute: 143.00K. Total: 483.00K
+[0160] Write key rate per minute: 145.00K. Total: 485.00K
+[0161] Write key rate per minute: 148.00K. Total: 488.00K
+[0162] Write key rate per minute: 142.00K. Total: 490.00K
+[0163] Write key rate per minute: 144.00K. Total: 492.00K
+[0164] Write key rate per minute: 147.00K. Total: 495.00K
+[0165] Write key rate per minute: 142.00K. Total: 497.00K
+[0166] Write key rate per minute: 144.00K. Total: 499.00K
+[0167] Write key rate per minute: 147.00K. Total: 502.00K
+[0168] Write key rate per minute: 141.00K. Total: 504.00K
+[0169] Write key rate per minute: 144.00K. Total: 507.00K
+[0170] Write key rate per minute: 146.00K. Total: 509.00K
+[0171] Write key rate per minute: 140.00K. Total: 511.00K
+[0172] Write key rate per minute: 143.00K. Total: 514.00K
+[0173] Write key rate per minute: 145.00K. Total: 516.00K
+[0174] Write key rate per minute: 139.00K. Total: 518.00K
+[0175] Write key rate per minute: 142.00K. Total: 521.00K
+[0176] Write key rate per minute: 144.00K. Total: 523.00K
+[0177] Write key rate per minute: 140.00K. Total: 526.00K
+[0178] Write key rate per minute: 142.00K. Total: 528.00K
+[0179] Write key rate per minute: 144.00K. Total: 530.00K
+[0180] Write key rate per minute: 138.00K. Total: 532.00K
+[0181] Write key rate per minute: 141.00K. Total: 535.00K
+[0182] Write key rate per minute: 143.00K. Total: 537.00K
+[0183] Write key rate per minute: 137.00K. Total: 539.00K
+[0184] Write key rate per minute: 140.00K. Total: 542.00K
+[0185] Write key rate per minute: 142.00K. Total: 544.00K
+[0186] Write key rate per minute: 137.00K. Total: 546.00K
+[0187] Write key rate per minute: 139.00K. Total: 548.00K
+[0188] Write key rate per minute: 142.00K. Total: 551.00K
+[0189] Write key rate per minute: 136.00K. Total: 553.00K
+[0190] Write key rate per minute: 138.00K. Total: 555.00K
+[0191] Write key rate per minute: 140.00K. Total: 557.00K
+[0192] Write key rate per minute: 136.00K. Total: 560.00K
+[0193] Write key rate per minute: 138.00K. Total: 562.00K
+[0194] Write key rate per minute: 140.00K. Total: 564.00K
+[0195] Write key rate per minute: 135.00K. Total: 566.00K
+[0196] Write key rate per minute: 138.00K. Total: 569.00K
+[0197] Write key rate per minute: 140.00K. Total: 571.00K
+[0198] Write key rate per minute: 134.00K. Total: 573.00K
+[0199] Write key rate per minute: 137.00K. Total: 576.00K
+[0200] Write key rate per minute: 139.00K. Total: 578.00K
+[0201] Write key rate per minute: 134.00K. Total: 580.00K
+[0202] Write key rate per minute: 137.00K. Total: 583.00K
+[0203] Write key rate per minute: 139.00K. Total: 585.00K
+[0204] Write key rate per minute: 133.00K. Total: 587.00K
+[0205] Write key rate per minute: 135.00K. Total: 589.00K
+[0206] Write key rate per minute: 138.00K. Total: 592.00K
+[0207] Write key rate per minute: 133.00K. Total: 594.00K
+[0208] Write key rate per minute: 135.00K. Total: 596.00K
+[0209] Write key rate per minute: 138.00K. Total: 599.00K
+[0210] Write key rate per minute: 133.00K. Total: 601.00K
+[0211] Write key rate per minute: 135.00K. Total: 603.00K
+[0212] Write key rate per minute: 137.00K. Total: 605.00K
+[0213] Write key rate per minute: 133.00K. Total: 608.00K
+[0214] Write key rate per minute: 135.00K. Total: 610.00K
+[0215] Write key rate per minute: 137.00K. Total: 612.00K
+[0216] Write key rate per minute: 132.00K. Total: 614.00K
+[0217] Write key rate per minute: 135.00K. Total: 617.00K
+[0218] Write key rate per minute: 137.00K. Total: 619.00K
+[0219] Write key rate per minute: 132.00K. Total: 621.00K
+[0220] Write key rate per minute: 134.00K. Total: 623.00K
+[0221] Write key rate per minute: 136.00K. Total: 625.00K
+[0222] Write key rate per minute: 131.00K. Total: 627.00K
+[0223] Write key rate per minute: 133.00K. Total: 629.00K
+[0224] Write key rate per minute: 136.00K. Total: 632.00K
+[0225] Write key rate per minute: 131.00K. Total: 634.00K
+[0226] Write key rate per minute: 133.00K. Total: 636.00K
+[0227] Write key rate per minute: 135.00K. Total: 638.00K
+[0228] Write key rate per minute: 131.00K. Total: 641.00K
+[0229] Write key rate per minute: 133.00K. Total: 643.00K
+[0230] Write key rate per minute: 135.00K. Total: 645.00K
+[0231] Write key rate per minute: 130.00K. Total: 647.00K
+[0232] Write key rate per minute: 132.00K. Total: 649.00K
+[0233] Write key rate per minute: 134.00K. Total: 651.00K
+[0234] Write key rate per minute: 130.00K. Total: 654.00K
+[0235] Write key rate per minute: 132.00K. Total: 656.00K
+[0236] Write key rate per minute: 134.00K. Total: 658.00K
+[0237] Write key rate per minute: 129.00K. Total: 660.00K
+[0238] Write key rate per minute: 131.00K. Total: 662.00K
+[0239] Write key rate per minute: 133.00K. Total: 664.00K
+[0240] Write key rate per minute: 129.00K. Total: 667.00K
+[0241] Write key rate per minute: 131.00K. Total: 669.00K
+[0242] Write key rate per minute: 133.00K. Total: 671.00K
+[0243] Write key rate per minute: 128.00K. Total: 673.00K
+[0244] Write key rate per minute: 130.00K. Total: 675.00K
+[0245] Write key rate per minute: 133.00K. Total: 678.00K
+[0246] Write key rate per minute: 128.00K. Total: 680.00K
+[0247] Write key rate per minute: 130.00K. Total: 682.00K
+[0248] Write key rate per minute: 132.00K. Total: 684.00K
+[0249] Write key rate per minute: 128.00K. Total: 686.00K
+[0250] Write key rate per minute: 130.00K. Total: 688.00K
+[0251] Write key rate per minute: 133.00K. Total: 691.00K
+[0252] Write key rate per minute: 128.00K. Total: 693.00K
+[0253] Write key rate per minute: 130.00K. Total: 695.00K
+[0254] Write key rate per minute: 133.00K. Total: 698.00K
+[0255] Write key rate per minute: 128.00K. Total: 700.00K
+[0256] Write key rate per minute: 130.00K. Total: 702.00K
+[0257] Write key rate per minute: 132.00K. Total: 704.00K
+[0258] Write key rate per minute: 127.00K. Total: 706.00K
+[0259] Write key rate per minute: 130.00K. Total: 709.00K
+[0260] Write key rate per minute: 132.00K. Total: 711.00K
+[0261] Write key rate per minute: 127.00K. Total: 713.00K
+[0262] Write key rate per minute: 130.00K. Total: 716.00K
+[0263] Write key rate per minute: 132.00K. Total: 718.00K
+[0264] Write key rate per minute: 128.00K. Total: 721.00K
+[0265] Write key rate per minute: 130.00K. Total: 723.00K
+[0266] Write key rate per minute: 132.00K. Total: 725.00K
+[0267] Write key rate per minute: 127.00K. Total: 727.00K
+[0268] Write key rate per minute: 129.00K. Total: 729.00K
+[0269] Write key rate per minute: 131.00K. Total: 731.00K
+[0270] Write key rate per minute: 127.00K. Total: 734.00K
+[0271] Write key rate per minute: 128.00K. Total: 735.00K
+[0272] Write key rate per minute: 130.00K. Total: 737.00K
+[0273] Write key rate per minute: 127.00K. Total: 740.00K
+[0274] Write key rate per minute: 129.00K. Total: 742.00K
+[0275] Write key rate per minute: 131.00K. Total: 744.00K
+[0276] Write key rate per minute: 127.00K. Total: 746.00K
+[0277] Write key rate per minute: 129.00K. Total: 748.00K
+[0278] Write key rate per minute: 131.00K. Total: 750.00K
+[0279] Write key rate per minute: 127.00K. Total: 753.00K
+[0280] Write key rate per minute: 129.00K. Total: 755.00K
+[0281] Write key rate per minute: 131.00K. Total: 757.00K
+[0282] Write key rate per minute: 126.00K. Total: 759.00K
+[0283] Write key rate per minute: 129.00K. Total: 762.00K
+[0284] Write key rate per minute: 131.00K. Total: 764.00K
+[0285] Write key rate per minute: 127.00K. Total: 766.00K
+[0286] Write key rate per minute: 129.00K. Total: 768.00K
+[0287] Write key rate per minute: 131.00K. Total: 770.00K
+[0288] Write key rate per minute: 127.00K. Total: 773.00K
+[0289] Write key rate per minute: 129.00K. Total: 775.00K
+[0290] Write key rate per minute: 131.00K. Total: 777.00K
+[0291] Write key rate per minute: 127.00K. Total: 779.00K
+[0292] Write key rate per minute: 129.00K. Total: 781.00K
+[0293] Write key rate per minute: 132.00K. Total: 784.00K
+[0294] Write key rate per minute: 127.00K. Total: 786.00K
+[0295] Write key rate per minute: 129.00K. Total: 788.00K
+[0296] Write key rate per minute: 131.00K. Total: 790.00K
+[0297] Write key rate per minute: 127.00K. Total: 792.00K
+[0298] Write key rate per minute: 129.00K. Total: 794.00K
+[0299] Write key rate per minute: 131.00K. Total: 796.00K
+[0300] Write key rate per minute: 126.00K. Total: 798.00K
+[0301] Write key rate per minute: 128.00K. Total: 800.00K
+[0302] Write key rate per minute: 130.00K. Total: 802.00K
+[0303] Write key rate per minute: 125.00K. Total: 804.00K
+[0304] Write key rate per minute: 128.00K. Total: 807.00K
+[0305] Write key rate per minute: 130.00K. Total: 809.00K
+[0306] Write key rate per minute: 126.00K. Total: 811.00K
+[0307] Write key rate per minute: 128.00K. Total: 813.00K
+[0308] Write key rate per minute: 131.00K. Total: 816.00K
+[0309] Write key rate per minute: 125.00K. Total: 817.00K
+[0310] Write key rate per minute: 128.00K. Total: 820.00K
+[0311] Write key rate per minute: 130.00K. Total: 822.00K
+[0312] Write key rate per minute: 125.00K. Total: 824.00K
+[0313] Write key rate per minute: 127.00K. Total: 826.00K
+[0314] Write key rate per minute: 129.00K. Total: 828.00K
+[0315] Write key rate per minute: 126.00K. Total: 831.00K
+[0316] Write key rate per minute: 128.00K. Total: 833.00K
+[0317] Write key rate per minute: 130.00K. Total: 835.00K
+[0318] Write key rate per minute: 125.00K. Total: 837.00K
+[0319] Write key rate per minute: 127.00K. Total: 839.00K
+[0320] Write key rate per minute: 129.00K. Total: 841.00K
+[0321] Write key rate per minute: 124.00K. Total: 843.00K
+[0322] Write key rate per minute: 126.00K. Total: 845.00K
+[0323] Write key rate per minute: 128.00K. Total: 847.00K
+[0324] Write key rate per minute: 123.00K. Total: 849.00K
+[0325] Write key rate per minute: 125.00K. Total: 851.00K
+[0326] Write key rate per minute: 128.00K. Total: 854.00K
+[0327] Write key rate per minute: 124.00K. Total: 856.00K
+[0328] Write key rate per minute: 126.00K. Total: 858.00K
+[0329] Write key rate per minute: 128.00K. Total: 860.00K
+[0330] Write key rate per minute: 123.00K. Total: 862.00K
+[0331] Write key rate per minute: 125.00K. Total: 864.00K
+[0332] Write key rate per minute: 128.00K. Total: 867.00K
+[0333] Write key rate per minute: 124.00K. Total: 869.00K
+[0334] Write key rate per minute: 126.00K. Total: 871.00K
+[0335] Write key rate per minute: 128.00K. Total: 873.00K
+[0336] Write key rate per minute: 125.00K. Total: 876.00K
+[0337] Write key rate per minute: 127.00K. Total: 878.00K
+[0338] Write key rate per minute: 129.00K. Total: 880.00K
+[0339] Write key rate per minute: 124.00K. Total: 882.00K
+[0340] Write key rate per minute: 126.00K. Total: 884.00K
+[0341] Write key rate per minute: 128.00K. Total: 886.00K
+[0342] Write key rate per minute: 124.00K. Total: 889.00K
+[0343] Write key rate per minute: 126.00K. Total: 891.00K
+[0344] Write key rate per minute: 128.00K. Total: 893.00K
+[0345] Write key rate per minute: 124.00K. Total: 895.00K
+[0346] Write key rate per minute: 126.00K. Total: 897.00K
+[0347] Write key rate per minute: 128.00K. Total: 899.00K
+[0348] Write key rate per minute: 123.00K. Total: 901.00K
+[0349] Write key rate per minute: 125.00K. Total: 903.00K
+[0350] Write key rate per minute: 128.00K. Total: 906.00K
+[0351] Write key rate per minute: 123.00K. Total: 908.00K
+[0352] Write key rate per minute: 125.00K. Total: 910.00K
+[0353] Write key rate per minute: 127.00K. Total: 912.00K
+[0354] Write key rate per minute: 123.00K. Total: 914.00K
+[0355] Write key rate per minute: 125.00K. Total: 916.00K
+[0356] Write key rate per minute: 127.00K. Total: 918.00K
+[0357] Write key rate per minute: 123.00K. Total: 920.00K
+[0358] Write key rate per minute: 125.00K. Total: 922.00K
+[0359] Write key rate per minute: 127.00K. Total: 924.00K
+[0360] Write key rate per minute: 123.00K. Total: 926.00K
+[0361] Write key rate per minute: 126.00K. Total: 929.00K
+[0362] Write key rate per minute: 128.00K. Total: 931.00K
+[0363] Write key rate per minute: 123.00K. Total: 933.00K
+[0364] Write key rate per minute: 125.00K. Total: 935.00K
+[0365] Write key rate per minute: 127.00K. Total: 937.00K
+[0366] Write key rate per minute: 123.00K. Total: 939.00K
+[0367] Write key rate per minute: 126.00K. Total: 942.00K
+[0368] Write key rate per minute: 128.00K. Total: 944.00K
+[0369] Write key rate per minute: 124.00K. Total: 947.00K
+[0370] Write key rate per minute: 126.00K. Total: 949.00K
+[0371] Write key rate per minute: 128.00K. Total: 951.00K
+[0372] Write key rate per minute: 124.00K. Total: 953.00K
+[0373] Write key rate per minute: 127.00K. Total: 956.00K
+[0374] Write key rate per minute: 129.00K. Total: 958.00K
+[0375] Write key rate per minute: 124.00K. Total: 960.00K
+[0376] Write key rate per minute: 126.00K. Total: 962.00K
+[0377] Write key rate per minute: 128.00K. Total: 964.00K
+[0378] Write key rate per minute: 125.00K. Total: 967.00K
+[0379] Write key rate per minute: 127.00K. Total: 969.00K
+[0380] Write key rate per minute: 129.00K. Total: 971.00K
+[0381] Write key rate per minute: 125.00K. Total: 973.00K
+[0382] Write key rate per minute: 127.00K. Total: 975.00K
+[0383] Write key rate per minute: 129.00K. Total: 977.00K
+[0384] Write key rate per minute: 124.00K. Total: 979.00K
+[0385] Write key rate per minute: 126.00K. Total: 981.00K
+[0386] Write key rate per minute: 128.00K. Total: 983.00K
+[0387] Write key rate per minute: 124.00K. Total: 985.00K
+[0388] Write key rate per minute: 126.00K. Total: 987.00K
+[0389] Write key rate per minute: 128.00K. Total: 989.00K
+[0390] Write key rate per minute: 123.00K. Total: 991.00K
+[0391] Write key rate per minute: 125.00K. Total: 993.00K
+[0392] Write key rate per minute: 127.00K. Total: 995.00K
+[0393] Write key rate per minute: 123.00K. Total: 997.00K
+[0394] Write key rate per minute: 125.00K. Total: 999.00K
+[0395] Write key rate per minute: 127.00K. Total:   1.00M
+[0396] Write key rate per minute: 122.00K. Total:   1.00M
+[0397] Write key rate per minute: 124.00K. Total:   1.00M
+[0398] Write key rate per minute: 126.00K. Total:   1.01M
+closing bolt
+
+WROTE 1008000 KEYS
+	Command being timed: "populate --kv bolt --valsz 16384 --keys_mil 1 --dir /data"
+	User time (seconds): 356.24
+	System time (seconds): 65.29
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 6:39.61
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 8998588
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 5491970
+	Voluntary context switches: 542274
+	Involuntary context switches: 6368
+	Swaps: 0
+	File system inputs: 736
+	File system outputs: 135719296
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

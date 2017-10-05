@@ -24,7 +24,13 @@ var (
 	memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 )
 
-func fillEntry(e *badger.Entry) {
+type entry struct {
+	Key   []byte
+	Value []byte
+	Meta  byte
+}
+
+func fillEntry(e *entry) {
 	k := rand.Intn(*numKeys * mil * 10)
 	key := fmt.Sprintf("vsz=%05d-k=%010d", *valueSize, k) // 22 bytes.
 	if cap(e.Key) < len(key) {
@@ -40,7 +46,7 @@ func fillEntry(e *badger.Entry) {
 var bdg *badger.KV
 var rocks *store.Store
 
-func createEntries(entries []*badger.Entry) *rdb.WriteBatch {
+func createEntries(entries []*entry) *rdb.WriteBatch {
 	rb := rocks.NewWriteBatch()
 	for _, e := range entries {
 		fillEntry(e)
@@ -80,14 +86,18 @@ func main() {
 	rocks, err = store.NewStore("tmp/rocks")
 	y.Check(err)
 
-	entries := make([]*badger.Entry, *numKeys*1000000)
+	entries := make([]*entry, *numKeys*1000000)
 	for i := 0; i < len(entries); i++ {
-		e := new(badger.Entry)
+		e := new(entry)
 		e.Key = make([]byte, 22)
 		e.Value = make([]byte, *valueSize)
 		entries[i] = e
 	}
 	rb := createEntries(entries)
+	txn := bdg.NewTransaction(true)
+	for _, e := range entries {
+		y.Check(txn.Set(e.Key, e.Value, e.Meta))
+	}
 
 	fmt.Println("Value size:", *valueSize)
 	fmt.Println("RocksDB:")
@@ -108,12 +118,13 @@ func main() {
 
 	fmt.Println("Badger:")
 	bstart := time.Now()
-	y.Check(bdg.BatchSet(entries))
+	y.Check(txn.Commit(nil))
 	iopt := badger.IteratorOptions{}
 	bistart := time.Now()
 	iopt.PrefetchValues = false
 	iopt.PrefetchSize = 1000
-	bitr := bdg.NewIterator(iopt)
+	txn = bdg.NewTransaction(false)
+	bitr := txn.NewIterator(iopt)
 	count = 0
 	for bitr.Rewind(); bitr.Valid(); bitr.Next() {
 		_ = bitr.Item().Key()

@@ -35,7 +35,6 @@ func getBadger() (*badger.KV, error) {
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
 	opt.DoNotCompact = true
-	opt.ValueGCThreshold = 0.0
 	return badger.NewKV(&opt)
 }
 
@@ -128,9 +127,11 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 
 	runRandomReadBenchmark(b, "badger", func(c *hitCounter, pb *testing.PB) {
 		var item badger.KVItem
+		var err error
 		for pb.Next() {
 			key := newKey()
-			err := bdb.Get(key, &item)
+			txn := bdb.NewTransaction(false)
+			item, err = txn.Get(key)
 			if err != nil {
 				c.errored++
 			} else {
@@ -375,8 +376,9 @@ func BenchmarkIterateBadgerOnlyKeys(b *testing.B) {
 			var count int
 			// 100 = size, 0 = num workers, false = fwd direction.
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
-			itr := bdb.NewIterator(opt)
+			opt.PrefetchSize = 256
+			txn := bdb.NewTransaction(false)
+			itr := txn.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
 				{
@@ -406,9 +408,10 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 		for j := 0; j < b.N; j++ {
 			var count int
 			opt := badger.IteratorOptions{}
-			opt.PrefetchSize = 10000
+			opt.PrefetchSize = 256
 			opt.PrefetchValues = true
-			itr := bdb.NewIterator(opt)
+			txn := bdb.NewTransaction(false)
+			itr := txn.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
 				err := item.Value(func(val []byte) error {
