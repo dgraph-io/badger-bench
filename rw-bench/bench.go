@@ -43,7 +43,7 @@ func fillEntry(e *entry) {
 	e.Meta = 0
 }
 
-var bdg *badger.KV
+var bdg *badger.DB
 var rocks *store.Store
 
 func createEntries(entries []*entry) *rdb.WriteBatch {
@@ -78,7 +78,7 @@ func main() {
 	var err error
 	y.Check(os.RemoveAll("tmp/badger"))
 	os.MkdirAll("tmp/badger", 0777)
-	bdg, err = badger.NewKV(&opt)
+	bdg, err = badger.Open(opt)
 	y.Check(err)
 
 	y.Check(os.RemoveAll("tmp/rocks"))

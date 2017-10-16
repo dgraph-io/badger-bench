@@ -54,7 +54,7 @@ func fillEntry(e *entry) {
 	e.Meta = 0
 }
 
-var bdb *badger.KV
+var bdb *badger.DB
 var rdb *store.Store
 var lmdbEnv *lmdb.Env
 var lmdbDBI lmdb.DBI
@@ -161,7 +161,7 @@ func main() {
 		fmt.Println("Init Badger")
 		y.Check(os.RemoveAll(*dir + "/badger"))
 		os.MkdirAll(*dir+"/badger", 0777)
-		bdb, err = badger.NewKV(&opt)
+		bdb, err = badger.Open(opt)
 		if err != nil {
 			log.Fatalf("while opening badger: %v", err)
 		}
