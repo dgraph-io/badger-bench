@@ -22,7 +22,7 @@ $ ldconfig # to update ld.so.cache
 $ go get github.com/dgraph-io/badger-bench/...
 ```
 
-- Run  `go test` and make sure everything compiles.
+- Run  `go test` and make sure everything compiles. Refer to the benchmarking logs below for commands to run individual benchmarks.
 
 ## Benchmarking Logs and Blog Posts
 We have performed comprehensive benchmarks against RocksDB, BoltDB and LMDB.
