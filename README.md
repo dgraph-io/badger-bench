@@ -1,10 +1,9 @@
-# Benchmarks for Badger
+# Benchmarks for BadgerDB
+This repo contains the code for benchmarking [BadgerDB], along with detailed logs from previous benchmarking runs.
 
-# Provisioning AWS Instance for Benchmarking
-- EC2 Instance Type: i3-large (use SSD option)
-- RAM Size: 16G (to generate 32G of data)
+[BadgerDB]:https://github.com/dgraph-io/badger
 
-# Setting Up
+## Setting Up
 - Install rocksdb using steps here: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
 
 ```
@@ -24,4 +23,12 @@ $ go get github.com/dgraph-io/badger-bench/...
 ```
 
 - Run  `go test` and make sure everything compiles.
+
+## Benchmarking Logs and Blog Posts
+We have performed comprehensive benchmarks against RocksDB, BoltDB and LMDB.
+Detailed logs of all the steps are made available in this repo. Refer to the 
+blog posts for graphs and other information.
+
+* [Benchmarking log for RocksDB](https://github.com/dgraph-io/badger-bench/blob/master/BENCH-rocks.txt) (link to [blog post](https://blog.dgraph.io/post/badger/))
+* [Benchmarking log for BoltDB and LMDB](https://github.com/dgraph-io/badger-bench/blob/master/BENCH-lmdb-bolt.md) (link to [blog post](https://blog.dgraph.io/post/badger-lmdb-boltdb/))
 
