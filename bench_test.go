@@ -29,13 +29,13 @@ var (
 const Mi int = 1000000
 const Mf float64 = 1000000
 
-func getBadger() (*badger.KV, error) {
+func getBadger() (*badger.DB, error) {
 	opt := badger.DefaultOptions
 	opt.TableLoadingMode = options.LoadToRAM
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
 	opt.DoNotCompact = true
-	return badger.NewKV(&opt)
+	return badger.Open(opt)
 }
 
 func getRocks() *store.Store {
@@ -126,7 +126,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	defer bdb.Close()
 
 	runRandomReadBenchmark(b, "badger", func(c *hitCounter, pb *testing.PB) {
-		var item badger.KVItem
+		var item *badger.Item
 		var err error
 		for pb.Next() {
 			key := newKey()
@@ -135,20 +135,20 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 			if err != nil {
 				c.errored++
 			} else {
-				err := item.Value(func(val []byte) error {
-					if val == nil {
-						c.notFound++
-						return nil
-					}
-					y.AssertTruef(len(val) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
-					c.found++
-					return nil
-				})
+				val, err := item.Value()
 
 				if err != nil {
 					c.errored++
+					continue
 				}
 
+				if val == nil {
+					c.notFound++
+					continue
+				}
+				y.AssertTruef(len(val) == *flagValueSize,
+					"Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
+				c.found++
 			}
 		}
 	})
@@ -414,18 +414,16 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 			itr := txn.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
-				err := item.Value(func(val []byte) error {
-					vsz := len(val)
-					y.AssertTruef(vsz == *flagValueSize, "Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
-					{
-						// do some processing.
-						k = safecopy(k, item.Key())
-						v = safecopy(v, val)
-					}
-					count++
-					return nil
-				})
+				val, err := item.Value()
 				y.Check(err)
+
+				vsz := len(val)
+				y.AssertTruef(vsz == *flagValueSize,
+					"Assertion failed. value size is %d, expected %d", vsz, *flagValueSize)
+				// do some processing.
+				k = safecopy(k, item.Key())
+				v = safecopy(v, val)
+				count++
 				print(count)
 				if count >= 2*Mi {
 					break
