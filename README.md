@@ -12,7 +12,7 @@ $ wget https://github.com/facebook/rocksdb/archive/v5.1.4.tar.gz
 $ tar -xzvf v5.1.4.tar.gz
 $ cd rocksdb-5.1.4
 $ make shared_lib
-$ sudo make install
+$ sudo make install-shared
 $ ldconfig # to update ld.so.cache
 ```
 
