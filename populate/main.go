@@ -69,7 +69,7 @@ func writeBatch(entries []*entry) int {
 		txn := bdb.NewTransaction(true)
 
 		for _, e := range entries {
-			y.Check(txn.Set(e.Key, e.Value, e.Meta))
+			y.Check(txn.Set(e.Key, e.Value))
 		}
 		y.Check(txn.Commit(nil))
 	}

@@ -96,7 +96,7 @@ func main() {
 	rb := createEntries(entries)
 	txn := bdg.NewTransaction(true)
 	for _, e := range entries {
-		y.Check(txn.Set(e.Key, e.Value, e.Meta))
+		y.Check(txn.Set(e.Key, e.Value))
 	}
 
 	fmt.Println("Value size:", *valueSize)
