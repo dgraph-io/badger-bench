@@ -113,25 +113,27 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 		var err error
 		for pb.Next() {
 			key := newKey()
-			txn := bdb.NewTransaction(false)
-			item, err = txn.Get(key)
-			if err != nil {
-				c.errored++
-			} else {
-				val, err := item.Value()
-
-				if err != nil {
-					c.errored++
-					continue
-				}
-
-				if val == nil {
+			err := bdb.View(func(txn *badger.Txn) error {
+				item, err = txn.Get(key)
+				if err == badger.ErrKeyNotFound {
 					c.notFound++
-					continue
+					return nil
 				}
+				if err != nil {
+					return err
+				}
+				val, err := item.Value()
+				if err != nil {
+					return err
+				}
+
 				y.AssertTruef(len(val) == *flagValueSize,
 					"Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
 				c.found++
+				return nil
+			})
+			if err != nil {
+				c.errored++
 			}
 		}
 	})
