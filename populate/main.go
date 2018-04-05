@@ -15,10 +15,8 @@ import (
 
 	"golang.org/x/net/trace"
 
-	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
@@ -28,7 +26,7 @@ import (
 const mil float64 = 1000000
 
 var (
-	which     = flag.String("kv", "badger", "Which KV store to use. Options: badger, rocksdb, lmdb, bolt")
+	which     = flag.String("kv", "badger", "Which KV store to use. Options: badger, rocksdb, bolt, leveldb")
 	numKeys   = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	valueSize = flag.Int("valsz", 128, "Value size in bytes.")
 	dir       = flag.String("dir", "", "Base dir for writes.")
@@ -55,9 +53,8 @@ func fillEntry(e *entry) {
 }
 
 var bdb *badger.DB
-var rdb *store.Store
-var lmdbEnv *lmdb.Env
-var lmdbDBI lmdb.DBI
+
+// var rdb *store.Store
 var boltdb *bolt.DB
 
 func writeBatch(entries []*entry) int {
@@ -74,29 +71,15 @@ func writeBatch(entries []*entry) int {
 		y.Check(txn.Commit(nil))
 	}
 
-	if rdb != nil {
-		rb := rdb.NewWriteBatch()
-		defer rb.Destroy()
+	// if rdb != nil {
+	// 	rb := rdb.NewWriteBatch()
+	// 	defer rb.Destroy()
 
-		for _, e := range entries {
-			rb.Put(e.Key, e.Value)
-		}
-		y.Check(rdb.WriteBatch(rb))
-	}
-
-	if lmdbEnv != nil {
-		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
-			for _, e := range entries {
-				err := txn.Put(lmdbDBI, e.Key, e.Value, 0)
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		})
-		y.Check(err)
-
-	}
+	// 	for _, e := range entries {
+	// 		rb.Put(e.Key, e.Value)
+	// 	}
+	// 	y.Check(rdb.WriteBatch(rb))
+	// }
 
 	if boltdb != nil {
 		err := boltdb.Batch(func(txn *bolt.Tx) error {
@@ -165,36 +148,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("while opening badger: %v", err)
 		}
-	} else if *which == "rocksdb" {
-		init = true
-		fmt.Println("Init Rocks")
-		os.RemoveAll(*dir + "/rocks")
-		os.MkdirAll(*dir+"/rocks", 0777)
-		rdb, err = store.NewStore(*dir + "/rocks")
-		y.Check(err)
-	} else if *which == "lmdb" {
-		init = true
-		fmt.Println("Init lmdb")
-		os.RemoveAll(*dir + "/lmdb")
-		os.MkdirAll(*dir+"/lmdb", 0777)
-
-		lmdbEnv, err = lmdb.NewEnv()
-		y.Check(err)
-		err = lmdbEnv.SetMaxDBs(1)
-		y.Check(err)
-		err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
-		y.Check(err)
-
-		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
-		y.Check(err)
-
-		// Acquire handle
-		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
-			var err error
-			lmdbDBI, err = txn.CreateDBI("bench")
-			return err
-		})
-		y.Check(err)
+		// } else if *which == "rocksdb" {
+		// 	init = true
+		// 	fmt.Println("Init Rocks")
+		// 	os.RemoveAll(*dir + "/rocks")
+		// 	os.MkdirAll(*dir+"/rocks", 0777)
+		// 	rdb, err = store.NewStore(*dir + "/rocks")
+		// 	y.Check(err)
 	} else if *which == "bolt" {
 		init = true
 		fmt.Println("Init BoltDB")
@@ -279,17 +239,10 @@ func main() {
 		bdb.Close()
 	}
 
-	if rdb != nil {
-		fmt.Println("closing rocks")
-		rdb.Close()
-	}
-
-	if lmdbEnv != nil {
-
-		fmt.Println("closing lmdb")
-		lmdbEnv.CloseDBI(lmdbDBI)
-		lmdbEnv.Close()
-	}
+	// if rdb != nil {
+	// 	fmt.Println("closing rocks")
+	// 	rdb.Close()
+	// }
 
 	if boltdb != nil {
 		fmt.Println("closing bolt")
