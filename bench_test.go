@@ -15,6 +15,7 @@ import (
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 var (
@@ -32,7 +33,7 @@ func getBadger() (*badger.DB, error) {
 	opt.TableLoadingMode = options.LoadToRAM
 	opt.Dir = *flagDir + "/badger"
 	opt.ValueDir = opt.Dir
-	opt.DoNotCompact = true
+	opt.ReadOnly = true
 	return badger.Open(opt)
 }
 
@@ -41,6 +42,12 @@ func getBadger() (*badger.DB, error) {
 // 	y.Check(err)
 // 	return rdb
 // }
+
+func getLevelDB() *leveldb.DB {
+	ldb, err := leveldb.OpenFile(*flagDir+"/level/l.db", nil)
+	y.Check(err)
+	return ldb
+}
 
 func getBoltDB() *bolt.DB {
 	opts := bolt.DefaultOptions
@@ -108,34 +115,36 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	y.Check(err)
 	defer bdb.Close()
 
+	read := func(txn *badger.Txn, key []byte) error {
+		item, err := txn.Get(key)
+		if err != nil {
+			return err
+		}
+		val, err := item.Value()
+		if err != nil {
+			return err
+		}
+		y.AssertTruef(len(val) == *flagValueSize,
+			"Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
+		return nil
+	}
+
 	runRandomReadBenchmark(b, "badger", func(c *hitCounter, pb *testing.PB) {
-		var item *badger.Item
-		var err error
-		for pb.Next() {
-			key := newKey()
-			err := bdb.View(func(txn *badger.Txn) error {
-				item, err = txn.Get(key)
+		err := bdb.View(func(txn *badger.Txn) error {
+			for pb.Next() {
+				key := newKey()
+				err := read(txn, key)
 				if err == badger.ErrKeyNotFound {
 					c.notFound++
-					return nil
+				} else if err != nil {
+					c.errored++
+				} else {
+					c.found++
 				}
-				if err != nil {
-					return err
-				}
-				val, err := item.Value()
-				if err != nil {
-					return err
-				}
-
-				y.AssertTruef(len(val) == *flagValueSize,
-					"Assertion failed. value size is %d, expected %d", len(val), *flagValueSize)
-				c.found++
-				return nil
-			})
-			if err != nil {
-				c.errored++
 			}
-		}
+			return nil
+		})
+		y.Check(err)
 	})
 }
 
@@ -154,6 +163,27 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 // 	})
 // }
 
+func BenchmarkReadRandomLevel(b *testing.B) {
+	ldb := getLevelDB()
+	defer ldb.Close()
+
+	runRandomReadBenchmark(b, "leveldb", func(c *hitCounter, pb *testing.PB) {
+		for pb.Next() {
+			key := newKey()
+			v, err := ldb.Get(key, nil)
+			if err == leveldb.ErrNotFound {
+				c.notFound++
+			} else if err != nil {
+				c.errored++
+			} else {
+				y.AssertTruef(len(v) == *flagValueSize,
+					"Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
+				c.found++
+			}
+		}
+	})
+}
+
 func BenchmarkReadRandomBolt(b *testing.B) {
 	boltdb := getBoltDB()
 	defer boltdb.Close()
@@ -169,7 +199,8 @@ func BenchmarkReadRandomBolt(b *testing.B) {
 					c.notFound++
 					continue
 				}
-				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
+				y.AssertTruef(len(v) == *flagValueSize,
+					"Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
 				c.found++
 			}
 			return nil

@@ -21,6 +21,8 @@ import (
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
+	"github.com/syndtr/goleveldb/leveldb"
+	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 const mil float64 = 1000000
@@ -56,6 +58,7 @@ var bdb *badger.DB
 
 // var rdb *store.Store
 var boltdb *bolt.DB
+var ldb *leveldb.DB
 
 func writeBatch(entries []*entry) int {
 	for _, e := range entries {
@@ -69,6 +72,16 @@ func writeBatch(entries []*entry) int {
 			y.Check(txn.Set(e.Key, e.Value))
 		}
 		y.Check(txn.Commit(nil))
+	}
+
+	if ldb != nil {
+		batch := new(leveldb.Batch)
+		for _, e := range entries {
+			batch.Put(e.Key, e.Value)
+		}
+		wopt := &opt.WriteOptions{}
+		wopt.Sync = true
+		y.Check(ldb.Write(batch, wopt))
 	}
 
 	// if rdb != nil {
@@ -170,6 +183,14 @@ func main() {
 		})
 		y.Check(err)
 
+	} else if *which == "leveldb" {
+		init = true
+		fmt.Println("Init LevelDB")
+		os.RemoveAll(*dir + "/level")
+		os.MkdirAll(*dir+"/level", 0777)
+		ldb, err = leveldb.OpenFile(*dir+"/level/l.db", nil)
+		y.Check(err)
+
 	} else {
 		log.Fatalf("Invalid value for option kv: '%s'", *which)
 	}
@@ -204,7 +225,7 @@ func main() {
 		}
 	}()
 
-	N := 12
+	N := 32
 	var wg sync.WaitGroup
 	for i := 0; i < N; i++ {
 		wg.Add(1)
@@ -243,6 +264,11 @@ func main() {
 	// 	fmt.Println("closing rocks")
 	// 	rdb.Close()
 	// }
+
+	if ldb != nil {
+		fmt.Println("closing leveldb")
+		ldb.Close()
+	}
 
 	if boltdb != nil {
 		fmt.Println("closing bolt")
