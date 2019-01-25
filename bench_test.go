@@ -13,6 +13,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
 	"github.com/syndtr/goleveldb/leveldb"
@@ -37,11 +38,11 @@ func getBadger() (*badger.DB, error) {
 	return badger.Open(opt)
 }
 
-// func getRocks() *store.Store {
-// 	rdb, err := store.NewReadOnlyStore(*flagDir + "/rocks")
-// 	y.Check(err)
-// 	return rdb
-// }
+func getRocks() *store.Store {
+	rdb, err := store.NewReadOnlyStore(*flagDir + "/rocks")
+	y.Check(err)
+	return rdb
+}
 
 func getLevelDB() *leveldb.DB {
 	ldb, err := leveldb.OpenFile(*flagDir+"/level/l.db", nil)
@@ -120,7 +121,7 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 		if err != nil {
 			return err
 		}
-		val, err := item.Value()
+		val, err := item.ValueCopy(nil)
 		if err != nil {
 			return err
 		}
@@ -148,20 +149,23 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	})
 }
 
-// func BenchmarkReadRandomRocks(b *testing.B) {
-// 	rdb := getRocks()
-// 	defer rdb.Close()
-
-// 	runRandomReadBenchmark(b, "rocksdb", func(c *hitCounter, pb *testing.PB) {
-// 		for pb.Next() {
-// 			key := newKey()
-// 			// FIXME lookup API and increment accordingly
-// 			if _, err := rdb.Get(key); err == nil {
-// 				c.found++
-// 			}
-// 		}
-// 	})
-// }
+func BenchmarkReadRandomRocks(b *testing.B) {
+	rdb := getRocks()
+	defer rdb.Close()
+	runRandomReadBenchmark(b, "rocksdb", func(c *hitCounter, pb *testing.PB) {
+		for pb.Next() {
+			key := newKey()
+			rdb_slice, err := rdb.Get(key)
+			if err != nil {
+				c.errored++
+			} else if rdb_slice.Size() > 0 {
+				c.found++
+			} else {
+				c.notFound++
+			}
+		}
+	})
+}
 
 func BenchmarkReadRandomLevel(b *testing.B) {
 	ldb := getLevelDB()
@@ -218,33 +222,32 @@ func safecopy(dst []byte, src []byte) []byte {
 	return dst
 }
 
-// func BenchmarkIterateRocks(b *testing.B) {
-// 	rdb := getRocks()
-// 	defer rdb.Close()
-// 	k := make([]byte, 1024)
-// 	v := make([]byte, Mi)
-// 	b.ResetTimer()
-
-// 	b.Run("rocksdb-iterate", func(b *testing.B) {
-// 		for j := 0; j < b.N; j++ {
-// 			itr := rdb.NewIterator()
-// 			var count int
-// 			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
-// 				{
-// 					// do some processing.
-// 					k = safecopy(k, itr.Key().Data())
-// 					v = safecopy(v, itr.Value().Data())
-// 				}
-// 				count++
-// 				print(count)
-// 				if count >= 2*Mi {
-// 					break
-// 				}
-// 			}
-// 			b.Logf("[%d] Counted %d keys\n", j, count)
-// 		}
-// 	})
-// }
+func BenchmarkIterateRocks(b *testing.B) {
+	rdb := getRocks()
+	defer rdb.Close()
+	k := make([]byte, 1024)
+	v := make([]byte, Mi)
+	b.ResetTimer()
+	b.Run("rocksdb-iterate", func(b *testing.B) {
+		for j := 0; j < b.N; j++ {
+			itr := rdb.NewIterator()
+			var count int
+			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
+				{
+					// do some processing.
+					k = safecopy(k, itr.Key().Data())
+					v = safecopy(v, itr.Value().Data())
+				}
+				count++
+				print(count)
+				if count >= 2*Mi {
+					break
+				}
+			}
+			b.Logf("[%d] Counted %d keys\n", j, count)
+		}
+	})
+}
 
 func BenchmarkIterateBolt(b *testing.B) {
 	boltdb := getBoltDB()
@@ -332,7 +335,7 @@ func BenchmarkIterateBadgerWithValues(b *testing.B) {
 			itr := txn.NewIterator(opt)
 			for itr.Rewind(); itr.Valid(); itr.Next() {
 				item := itr.Item()
-				val, err := item.Value()
+				val, err := item.ValueCopy(nil)
 				y.Check(err)
 
 				vsz := len(val)

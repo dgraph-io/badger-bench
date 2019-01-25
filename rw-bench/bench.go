@@ -118,7 +118,7 @@ func main() {
 
 	fmt.Println("Badger:")
 	bstart := time.Now()
-	y.Check(txn.Commit(nil))
+	y.Check(txn.Commit())
 	iopt := badger.IteratorOptions{}
 	bistart := time.Now()
 	iopt.PrefetchValues = false
