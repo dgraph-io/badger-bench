@@ -1,5 +1,11 @@
 # Amazon i3.large dedicated instance: 2 cores, 16G RAM, 450G local SSD.
 
+First, we shall set up the environment for running tests, by choosing where to store the benchmark
+data and telling the program where to find the rockdb shared libraries:
+export DATADIR=$HOME/bench-data
+mkdir $DATADIR
+export LD_LIBRARY_PATH=/usr/local/lib
+
 As shown by fio, this instance gives 93K random iops at 4K block size.
 
 $ fio --name=randread --ioengine=libaio --iodepth=32 --rw=randread --bs=4k --direct=0 --size=2G --numjobs=16 --runtime=240 --group_reporting
@@ -53,7 +59,7 @@ Run status group 0 (all jobs):
 Disk stats (read/write):
   nvme0n1: ios=8386313/19379, merge=0/0, ticks=877396/60, in_queue=880100, util=100.00%
 
-        Command being timed: "./populate --kv rocksdb --valsz 128 --keys_mil 250"
+        Command being timed: "populate --kv rocksdb --valsz 128 --keys_mil 250 --dir=$DATADIR"
         User time (seconds): 2685.96
         System time (seconds): 532.66
         Percent of CPU this job got: 136%
@@ -77,14 +83,14 @@ Disk stats (read/write):
         Page size (bytes): 4096
         Exit status: 0
 
-$ du -sh /mnt/data/rocks
-24G     /mnt/data/rocks
+$ du -sh $DATADIR/rocks
+24G     $DATADIR/rocks
 
 
 In this case, we set the value log GC threshold to 0.5. Turns out doing value log GC can be expensive.
 So, we should only do it sometimes. It's only worth if saving significant amount of disk space.
 
-        Command being timed: "./populate --kv badger --valsz 128 --keys_mil 250"
+        Command being timed: "populate --kv badger --valsz 128 --keys_mil 250 --dir=$DATADIR"
         User time (seconds): 4983.09
         System time (seconds): 166.96
         Percent of CPU this job got: 188%
@@ -115,7 +121,7 @@ $ du -sh /mnt/data/badger
 
 Random Reads: Badger is 3.67x faster
 
-$ go test --bench BenchmarkReadRandomRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 3m 
+$ go test --bench BenchmarkReadRandomRocks --keys_mil 250 --valsz 128 --dir $DATADIR --timeout 10m --benchtime 3m 
 BenchmarkReadRandomRocks/read-random-rocks-2             2000000            118982 ns/op
 --- BENCH: BenchmarkReadRandomRocks/read-random-rocks-2
         bench_test.go:92: rocks 149864 keys had valid values.
@@ -124,7 +130,7 @@ BenchmarkReadRandomRocks/read-random-rocks-2             2000000            1189
         bench_test.go:92: rocks 999307 keys had valid values.
 PASS
 
-$ go test --bench BenchmarkReadRandomBadger --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --benchtime 3m
+$ go test --bench BenchmarkReadRandomBadger --keys_mil 250 --valsz 128 --dir $DATADIR --timeout 10m --benchtime 3m
 Called BenchmarkReadRandomBadger
 Replaying compact log: /mnt/data/badger/clog
 All compactions in compact log are done.
@@ -151,14 +157,14 @@ PASS
 
 ### Iteration
 
-$ go test --bench BenchmarkIterateRocks --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --cpuprofile cpu.out
+$ go test --bench BenchmarkIterateRocks --keys_mil 250 --valsz 128 --dir $DATADIR --timeout 10m --cpuprofile cpu.out
 BenchmarkIterateRocks/rocksdb-iterate-2                        1        5806763436 ns/op
 --- BENCH: BenchmarkIterateRocks/rocksdb-iterate-2
         bench_test.go:128: [0] Counted 2000000 keys
 PASS
 ok      github.com/dgraph-io/badger-bench       6.987s
 
-$ go test --bench BenchmarkIterateBadgerOnly --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m --cpuprofile cpu.out
+$ go test --bench BenchmarkIterateBadgerOnly --keys_mil 250 --valsz 128 --dir $DATADIR --timeout 10m --cpuprofile cpu.out
 Replaying compact log: /mnt/data/badger/clog
 All compactions in compact log are done.
 NOT running any compactions due to DB options.
@@ -175,7 +181,7 @@ BenchmarkIterateBadgerOnlyKeys/badger-iterate-onlykeys-2                       2
 PASS
 ok      github.com/dgraph-io/badger-bench       10.198s
 
-$ go test --bench BenchmarkIterateBadgerWithValues --keys_mil 250 --valsz 128 --dir "/mnt/data" --timeout 10m
+$ go test --bench BenchmarkIterateBadgerWithValues --keys_mil 250 --valsz 128 --dir $DATADIR --timeout 10m
 Replaying compact log: /mnt/data/badger/clog
 All compactions in compact log are done.
 NOT running any compactions due to DB options.
@@ -322,7 +328,7 @@ PASS
 ok      github.com/dgraph-io/badger-bench       114.170s
 
 WROTE 5004000 KEYS
-        Command being timed: "./populate --kv rocksdb --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
+        Command being timed: "./populate --kv rocksdb --valsz 16384 --keys_mil 5 --dir $DATADIR/16kb"
         User time (seconds): 1424.16
         System time (seconds): 1397.96
         Percent of CPU this job got: 57%
@@ -350,7 +356,7 @@ $ du -sh rocks
 52G
 
 WROTE 5004000 KEYS
-        Command being timed: "./populate --kv badger --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
+        Command being timed: "./populate --kv badger --valsz 16384 --keys_mil 5 --dir $DATADIR/16kb"
         User time (seconds): 368.05
         System time (seconds): 113.57
         Percent of CPU this job got: 116%
@@ -379,7 +385,7 @@ $ du -shc badger/*.sst
 $ du -shc badger/*.vlog
 77G
 
-$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 3m
+$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "$DATADIR/16kb" --timeout 10m --benchtime 3m
 BenchmarkReadRandomRocks/read-random-rocks-2            SIGQUIT: quit
 PC=0x460ed9 m=0 sigcode=0
 
@@ -401,7 +407,7 @@ FAIL    github.com/dgraph-io/badger-bench       674.142s
 
 NOTE: RocksDB took too much memory when doing random lookups. So, this crash happened multiple times.
 
-$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 1m
+$ go test -v --bench BenchmarkReadRandomRocks --keys_mil 5 --valsz 16384 --dir "$DATADIR/16kb" --timeout 10m --benchtime 1m
 BenchmarkReadRandomRocks/read-random-rocks-2              300000            215171 ns/op
 --- BENCH: BenchmarkReadRandomRocks/read-random-rocks-2
         bench_test.go:93: rocks 100391 keys had valid values.
@@ -410,9 +416,9 @@ BenchmarkReadRandomRocks/read-random-rocks-2              300000            2151
 PASS
 ok      github.com/dgraph-io/badger-bench       121.391s
 
-$ go test -v --bench BenchmarkReadRandomBadger --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 1m
+$ go test -v --bench BenchmarkReadRandomBadger --keys_mil 5 --valsz 16384 --dir "$DATADIR/16kb" --timeout 10m --benchtime 1m
 Called BenchmarkReadRandomBadger
-Replaying compact log: /mnt/data/16kb/badger/clog
+Replaying compact log: $DATADIR/16kb/badger/clog
 All compactions in compact log are done.
 NOT running any compactions due to DB options.
 NOT running any compactions due to DB options.
@@ -436,7 +442,7 @@ Level "value-gc" already got signal
 PASS
 ok      github.com/dgraph-io/badger-bench       123.227s
 
-$ go test -v --bench BenchmarkIterate --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 60m        
+$ go test -v --bench BenchmarkIterate --keys_mil 5 --valsz 16384 --dir "$DATADIR/16kb" --timeout 60m        
 BenchmarkIterateRocks/rocksdb-iterate-2                        1        133313688657 ns/op
 --- BENCH: BenchmarkIterateRocks/rocksdb-iterate-2
         bench_test.go:129: [0] Counted 2000001 keys
@@ -474,7 +480,7 @@ ok      github.com/dgraph-io/badger-bench       264.244s
 16 Byte values
 
 WROTE 1000008000 KEYS
-        Command being timed: "./populate --kv rocksdb --valsz 16 --keys_mil 1000 --dir /mnt/data/16"
+        Command being timed: "./populate --kv rocksdb --valsz 16 --keys_mil 1000 --dir $DATADIR/16"
         User time (seconds): 8515.35
         System time (seconds): 468.95
         Percent of CPU this job got: 151%
@@ -500,7 +506,7 @@ WROTE 1000008000 KEYS
 
 [11010] Write key rate per minute:   5.03M. Total: 999.91M
 Command terminated by signal 9  <---------------------------- Strange
-        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir /mnt/data/16"
+        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir $DATADIR/16"
         User time (seconds): 20732.95
         System time (seconds): 662.04
         Percent of CPU this job got: 193%
@@ -529,7 +535,7 @@ Update: with latest changes to compaction, 250K keys are written in 37m.
 Another run of Badger.
 
 WROTE 1000008000 KEYS
-        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir /mnt/data/16"
+        Command being timed: "./populate --kv badger --valsz 16 --keys_mil 1000 --dir $DATADIR/16"
         User time (seconds): 21221.83
         System time (seconds): 707.07
         Percent of CPU this job got: 192%

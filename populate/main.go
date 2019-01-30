@@ -17,6 +17,7 @@ import (
 
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/options"
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
@@ -56,7 +57,7 @@ func fillEntry(e *entry) {
 
 var bdb *badger.DB
 
-// var rdb *store.Store
+var rdb *store.Store
 var boltdb *bolt.DB
 var ldb *leveldb.DB
 
@@ -71,7 +72,7 @@ func writeBatch(entries []*entry) int {
 		for _, e := range entries {
 			y.Check(txn.Set(e.Key, e.Value))
 		}
-		y.Check(txn.Commit(nil))
+		y.Check(txn.Commit())
 	}
 
 	if ldb != nil {
@@ -84,15 +85,14 @@ func writeBatch(entries []*entry) int {
 		y.Check(ldb.Write(batch, wopt))
 	}
 
-	// if rdb != nil {
-	// 	rb := rdb.NewWriteBatch()
-	// 	defer rb.Destroy()
-
-	// 	for _, e := range entries {
-	// 		rb.Put(e.Key, e.Value)
-	// 	}
-	// 	y.Check(rdb.WriteBatch(rb))
-	// }
+	if rdb != nil {
+		rb := rdb.NewWriteBatch()
+		defer rb.Destroy()
+		for _, e := range entries {
+			rb.Put(e.Key, e.Value)
+		}
+		y.Check(rdb.WriteBatch(rb))
+	}
 
 	if boltdb != nil {
 		err := boltdb.Batch(func(txn *bolt.Tx) error {
@@ -161,13 +161,13 @@ func main() {
 		if err != nil {
 			log.Fatalf("while opening badger: %v", err)
 		}
-		// } else if *which == "rocksdb" {
-		// 	init = true
-		// 	fmt.Println("Init Rocks")
-		// 	os.RemoveAll(*dir + "/rocks")
-		// 	os.MkdirAll(*dir+"/rocks", 0777)
-		// 	rdb, err = store.NewStore(*dir + "/rocks")
-		// 	y.Check(err)
+	} else if *which == "rocksdb" {
+		init = true
+		fmt.Println("Init Rocks")
+		os.RemoveAll(*dir + "/rocks")
+		os.MkdirAll(*dir+"/rocks", 0777)
+		rdb, err = store.NewStore(*dir + "/rocks")
+		y.Check(err)
 	} else if *which == "bolt" {
 		init = true
 		fmt.Println("Init BoltDB")
@@ -260,10 +260,10 @@ func main() {
 		bdb.Close()
 	}
 
-	// if rdb != nil {
-	// 	fmt.Println("closing rocks")
-	// 	rdb.Close()
-	// }
+	if rdb != nil {
+		fmt.Println("closing rocks")
+		rdb.Close()
+	}
 
 	if ldb != nil {
 		fmt.Println("closing leveldb")
