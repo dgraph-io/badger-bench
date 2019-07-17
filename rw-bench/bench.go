@@ -69,11 +69,8 @@ func main() {
 	}
 
 	rand.Seed(time.Now().Unix())
-	opt := badger.DefaultOptions
-	// opt.MapTablesTo = table.Nothing
-	opt.Dir = "tmp/badger"
-	opt.ValueDir = opt.Dir
-	opt.SyncWrites = false
+	opt := badger.DefaultOptions("tmp/badger").
+		WithSyncWrites(false)
 
 	var err error
 	y.Check(os.RemoveAll("tmp/badger"))
