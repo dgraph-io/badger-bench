@@ -142,10 +142,8 @@ func main() {
 
 	nw := *numKeys * mil
 	fmt.Printf("TOTAL KEYS TO WRITE: %s\n", humanize(int64(nw)))
-	opt := badger.DefaultOptions
+	opt := badger.DefaultOptions(*dir + "/badger")
 	opt.TableLoadingMode = options.MemoryMap
-	opt.Dir = *dir + "/badger"
-	opt.ValueDir = opt.Dir
 	opt.SyncWrites = true
 
 	var err error
