@@ -30,10 +30,8 @@ const Mi int = 1000000
 const Mf float64 = 1000000
 
 func getBadger() (*badger.DB, error) {
-	opt := badger.DefaultOptions
+	opt := badger.DefaultOptions(*flagDir + "/badger")
 	opt.TableLoadingMode = options.LoadToRAM
-	opt.Dir = *flagDir + "/badger"
-	opt.ValueDir = opt.Dir
 	opt.ReadOnly = true
 	return badger.Open(opt)
 }
