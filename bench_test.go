@@ -376,8 +376,6 @@ func BenchmarkIterateLmdb(b *testing.B) {
 						return err
 					}
 
-					//fmt.Printf("%s %s\n", k, v)
-
 					y.AssertTruef(len(v1) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v1), *flagValueSize)
 
 					// do some processing.
