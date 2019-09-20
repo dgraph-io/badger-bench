@@ -15,6 +15,7 @@ import (
 
 	"golang.org/x/net/trace"
 
+	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
@@ -60,6 +61,8 @@ var bdb *badger.DB
 var rdb *store.Store
 var boltdb *bolt.DB
 var ldb *leveldb.DB
+var lmdbEnv *lmdb.Env
+var lmdbDBI lmdb.DBI
 
 func writeBatch(entries []*entry) int {
 	for _, e := range entries {
@@ -100,6 +103,19 @@ func writeBatch(entries []*entry) int {
 			y.AssertTrue(boltBkt != nil)
 			for _, e := range entries {
 				if err := boltBkt.Put(e.Key, e.Value); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+		y.Check(err)
+	}
+
+	if lmdbEnv != nil {
+		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
+			for _, e := range entries {
+				err := txn.Put(lmdbDBI, e.Key, e.Value, 0)
+				if err != nil {
 					return err
 				}
 			}
@@ -189,6 +205,29 @@ func main() {
 		ldb, err = leveldb.OpenFile(*dir+"/level/l.db", nil)
 		y.Check(err)
 
+	} else if *which == "lmdb" {
+		init = true
+		fmt.Println("Init lmdb")
+		os.RemoveAll(*dir + "/lmdb")
+		os.MkdirAll(*dir+"/lmdb", 0777)
+
+		lmdbEnv, err = lmdb.NewEnv()
+		y.Check(err)
+		err = lmdbEnv.SetMaxDBs(1)
+		y.Check(err)
+		err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
+		y.Check(err)
+
+		err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
+		y.Check(err)
+
+		// Acquire handle
+		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
+			var err error
+			lmdbDBI, err = txn.CreateDBI("bench")
+			return err
+		})
+		y.Check(err)
 	} else {
 		log.Fatalf("Invalid value for option kv: '%s'", *which)
 	}
@@ -271,6 +310,12 @@ func main() {
 	if boltdb != nil {
 		fmt.Println("closing bolt")
 		boltdb.Close()
+	}
+
+	if lmdbEnv != nil {
+		fmt.Println("closing lmdb")
+		lmdbEnv.CloseDBI(lmdbDBI)
+		lmdbEnv.Close()
 	}
 
 	fmt.Printf("\nWROTE %d KEYS\n", atomic.LoadInt64(&counter))
