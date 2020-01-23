@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgraph-io/badger"
+	"github.com/dgraph-io/badger/v2"
 )
 
 var (
