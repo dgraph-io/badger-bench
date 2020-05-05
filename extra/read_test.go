@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+
 	//	"io/ioutil"
 	"math/rand"
 	"os"
 	"syscall"
 	"testing"
 
-	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/badger/v2/y"
 )
 
 func createFile(writeBuf []byte) string {

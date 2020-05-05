@@ -10,10 +10,11 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger-bench/rdb"
+	"github.com/dgraph-io/badger/v2"
+	rocksdb "github.com/tecbot/gorocksdb"
+
 	"github.com/dgraph-io/badger-bench/store"
-	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/badger/v2/y"
 )
 
 var (
@@ -46,7 +47,7 @@ func fillEntry(e *entry) {
 var bdg *badger.DB
 var rocks *store.Store
 
-func createEntries(entries []*entry) *rdb.WriteBatch {
+func createEntries(entries []*entry) *rocksdb.WriteBatch {
 	rb := rocks.NewWriteBatch()
 	for _, e := range entries {
 		fillEntry(e)

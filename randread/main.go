@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/codahale/hdrhistogram"
-	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/badger/v2/y"
 	"github.com/pkg/profile"
 	"github.com/traetox/goaio"
 )

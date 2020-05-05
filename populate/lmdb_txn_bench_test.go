@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/bmatsuo/lmdb-go/lmdb"
-	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/y"
+	"github.com/dgraph-io/badger/v2"
+	"github.com/dgraph-io/badger/v2/y"
 )
 
 func getLmdbEnv() *lmdb.Env {
