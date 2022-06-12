@@ -15,7 +15,6 @@ import (
 
 	"golang.org/x/net/trace"
 
-	"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/boltdb/bolt"
 	"github.com/dgraph-io/badger"
 	"github.com/dgraph-io/badger-bench/store"
@@ -23,8 +22,6 @@ import (
 	"github.com/dgraph-io/badger/y"
 	"github.com/paulbellamy/ratecounter"
 	"github.com/pkg/profile"
-	"github.com/syndtr/goleveldb/leveldb"
-	"github.com/syndtr/goleveldb/leveldb/opt"
 )
 
 const mil float64 = 1000000
