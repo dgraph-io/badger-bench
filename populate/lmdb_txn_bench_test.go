@@ -10,12 +10,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmatsuo/lmdb-go/lmdb"
+	//"github.com/bmatsuo/lmdb-go/lmdb"
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger/y"
+	//"github.com/dgraph-io/badger/y"
 )
 
-func getLmdbEnv() *lmdb.Env {
+/*func getLmdbEnv() *lmdb.Env {
 	os.RemoveAll(*dir + "/lmdb")
 	os.MkdirAll(*dir+"/lmdb", 0777)
 
@@ -30,14 +30,14 @@ func getLmdbEnv() *lmdb.Env {
 	err = lmdbEnv.Open(*dir+"/lmdb", 0, 0777)
 	y.Check(err)
 	return lmdbEnv
-}
+}*/
 
 // Create a function that wraps env.Update and sends the resulting error
 // over a channel.  Because env.Update is called our update function will
 // call runtime.LockOSThread to safely issue the update operation.
-var update = func(res chan<- error, op lmdb.TxnOp) {
-	res <- lmdbEnv.Update(op)
-}
+//var update = func(res chan<- error, op lmdb.TxnOp) {
+//	res <- lmdbEnv.Update(op)
+//}
 
 func writeEntries(dbi lmdb.DBI, txn *lmdb.Txn, entries []*badger.Entry) error {
 	for _, e := range entries {
@@ -49,23 +49,23 @@ func writeEntries(dbi lmdb.DBI, txn *lmdb.Txn, entries []*badger.Entry) error {
 	return nil
 }
 
-func writeSimpleBatched(entries []*badger.Entry, dbi lmdb.DBI) {
+/*func writeSimpleBatched(entries []*badger.Entry, dbi lmdb.DBI) {
 	err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
 		return writeEntries(dbi, txn, entries)
 	})
 	y.Check(err)
-}
+}*/
 
-func writeTxnBatched(entries []*badger.Entry, dbi lmdb.DBI) {
+/*func writeTxnBatched(entries []*badger.Entry, dbi lmdb.DBI) {
 	err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
 		return txn.Sub(func(txn *lmdb.Txn) error {
 			return writeEntries(dbi, txn, entries)
 		})
 	})
 	y.Check(err)
-}
+}*/
 
-func BenchmarkLmdbBatch(b *testing.B) {
+/*func BenchmarkLmdbBatch(b *testing.B) {
 	entries := make([]*badger.Entry, 1000)
 	for i := 0; i < len(entries); i++ {
 		e := new(badger.Entry)
@@ -98,7 +98,7 @@ func BenchmarkLmdbBatch(b *testing.B) {
 			writeTxnBatched(entries, dbi)
 		}
 	})
-}
+}*/
 
 func TestMain(m *testing.M) {
 	flag.Parse()

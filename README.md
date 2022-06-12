@@ -3,19 +3,6 @@ This repo contains the code for benchmarking [BadgerDB], along with detailed log
 
 [BadgerDB]:https://github.com/dgraph-io/badger
 
-## Setting Up
-- Install rocksdb using steps here: https://github.com/facebook/rocksdb/blob/master/INSTALL.md
-
-```
-$ sudo apt-get update && sudo apt-get install libgflags-dev libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
-$ wget https://github.com/facebook/rocksdb/archive/v5.1.4.tar.gz
-$ tar -xzvf v5.1.4.tar.gz
-$ cd rocksdb-5.1.4
-$ export USE_RTTI=1 && make shared_lib
-$ sudo make install-shared
-$ ldconfig # to update ld.so.cache
-```
-
 - Install badger bench
 
 ```

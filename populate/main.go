@@ -54,11 +54,12 @@ func fillEntry(e *entry) {
 
 var bdb *badger.DB
 
-var rdb *store.Store
+//var rdb *store.Store
 var boltdb *bolt.DB
-var ldb *leveldb.DB
-var lmdbEnv *lmdb.Env
-var lmdbDBI lmdb.DBI
+
+//var ldb *leveldb.DB
+//var lmdbEnv *lmdb.Env
+//var lmdbDBI lmdb.DBI
 
 func writeBatch(entries []*entry) int {
 	for _, e := range entries {
@@ -74,7 +75,7 @@ func writeBatch(entries []*entry) int {
 		y.Check(txn.Commit())
 	}
 
-	if ldb != nil {
+	/*if ldb != nil {
 		batch := new(leveldb.Batch)
 		for _, e := range entries {
 			batch.Put(e.Key, e.Value)
@@ -82,16 +83,16 @@ func writeBatch(entries []*entry) int {
 		wopt := &opt.WriteOptions{}
 		wopt.Sync = true
 		y.Check(ldb.Write(batch, wopt))
-	}
+	}*/
 
-	if rdb != nil {
+	/*if rdb != nil {
 		rb := rdb.NewWriteBatch()
 		defer rb.Destroy()
 		for _, e := range entries {
 			rb.Put(e.Key, e.Value)
 		}
 		y.Check(rdb.WriteBatch(rb))
-	}
+	}*/
 
 	if boltdb != nil {
 		err := boltdb.Batch(func(txn *bolt.Tx) error {
@@ -107,7 +108,7 @@ func writeBatch(entries []*entry) int {
 		y.Check(err)
 	}
 
-	if lmdbEnv != nil {
+	/*if lmdbEnv != nil {
 		err := lmdbEnv.Update(func(txn *lmdb.Txn) error {
 			for _, e := range entries {
 				err := txn.Put(lmdbDBI, e.Key, e.Value, 0)
@@ -118,7 +119,7 @@ func writeBatch(entries []*entry) int {
 			return nil
 		})
 		y.Check(err)
-	}
+	}*/
 
 	return len(entries)
 }
@@ -171,13 +172,6 @@ func main() {
 		if err != nil {
 			log.Fatalf("while opening badger: %v", err)
 		}
-	} else if *which == "rocksdb" {
-		init = true
-		fmt.Println("Init Rocks")
-		os.RemoveAll(*dir + "/rocks")
-		os.MkdirAll(*dir+"/rocks", 0777)
-		rdb, err = store.NewStore(*dir + "/rocks")
-		y.Check(err)
 	} else if *which == "bolt" {
 		init = true
 		fmt.Println("Init BoltDB")
@@ -192,8 +186,20 @@ func main() {
 			return err
 		})
 		y.Check(err)
+	} else {
+		log.Fatalf("Invalid value for option kv: '%s'", *which)
+	}
 
-	} else if *which == "leveldb" {
+	/*else if *which == "rocksdb" {
+		init = true
+		fmt.Println("Init Rocks")
+		os.RemoveAll(*dir + "/rocks")
+		os.MkdirAll(*dir+"/rocks", 0777)
+		rdb, err = store.NewStore(*dir + "/rocks")
+		y.Check(err)
+	} */
+
+	/*else if *which == "leveldb" {
 		init = true
 		fmt.Println("Init LevelDB")
 		os.RemoveAll(*dir + "/level")
@@ -224,9 +230,7 @@ func main() {
 			return err
 		})
 		y.Check(err)
-	} else {
-		log.Fatalf("Invalid value for option kv: '%s'", *which)
-	}
+	}*/
 
 	if !init {
 		log.Fatalf("Invalid arguments. Unable to init any store.")
@@ -288,31 +292,31 @@ func main() {
 	wg.Wait()
 	cancel()
 
-	if bdb != nil {
-		fmt.Println("closing badger")
-		bdb.Close()
-	}
+	//if bdb != nil {
+	//	fmt.Println("closing badger")
+	//	bdb.Close()
+	//}
 
-	if rdb != nil {
-		fmt.Println("closing rocks")
-		rdb.Close()
-	}
+	//if rdb != nil {
+	//	fmt.Println("closing rocks")
+	//	rdb.Close()
+	//}
 
-	if ldb != nil {
-		fmt.Println("closing leveldb")
-		ldb.Close()
-	}
+	//if ldb != nil {
+	//	fmt.Println("closing leveldb")
+	//	ldb.Close()
+	//}
 
 	if boltdb != nil {
 		fmt.Println("closing bolt")
 		boltdb.Close()
 	}
 
-	if lmdbEnv != nil {
-		fmt.Println("closing lmdb")
-		lmdbEnv.CloseDBI(lmdbDBI)
-		lmdbEnv.Close()
-	}
+	//if lmdbEnv != nil {
+	//	fmt.Println("closing lmdb")
+	//	lmdbEnv.CloseDBI(lmdbDBI)
+	//	lmdbEnv.Close()
+	//}
 
 	fmt.Printf("\nWROTE %d KEYS\n", atomic.LoadInt64(&counter))
 }
