@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	//	"context"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	ctx           = context.Background()
+	//ctx           = context.Background()
 	numKeys       = flag.Float64("keys_mil", 10.0, "How many million keys to write.")
 	flagDir       = flag.String("dir", "bench-tmp", "Where data is temporarily stored.")
 	flagValueSize = flag.Int("valsz", 128, "Size of each value.")
@@ -30,7 +30,10 @@ const Mf float64 = 1000000
 func getBadger() (*badger.DB, error) {
 	opt := badger.DefaultOptions(*flagDir + "/badger")
 	opt.TableLoadingMode = options.LoadToRAM
-	opt.ReadOnly = true
+	//opt.ReadOnly = true
+	//https://github.com/dgraph-io/badger/issues/478
+	// joshua 6/12: not sure why this needed to change
+	opt.ReadOnly = false
 	return badger.Open(opt)
 }
 
