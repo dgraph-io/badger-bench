@@ -34,6 +34,7 @@ func getBadger() (*badger.DB, error) {
 	//https://github.com/dgraph-io/badger/issues/478
 	// joshua 6/12: not sure why this needed to change
 	opt.ReadOnly = false
+
 	return badger.Open(opt)
 }
 
