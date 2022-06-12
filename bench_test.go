@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"math"
 	"math/rand"
 	"net/http"
 	"os"
@@ -35,39 +34,12 @@ func getBadger() (*badger.DB, error) {
 	return badger.Open(opt)
 }
 
-func getRocks() *store.Store {
-	rdb, err := store.NewReadOnlyStore(*flagDir + "/rocks")
-	y.Check(err)
-	return rdb
-}
-
-func getLevelDB() *leveldb.DB {
-	ldb, err := leveldb.OpenFile(*flagDir+"/level/l.db", nil)
-	y.Check(err)
-	return ldb
-}
-
 func getBoltDB() *bolt.DB {
 	opts := bolt.DefaultOptions
 	opts.ReadOnly = true
 	boltdb, err := bolt.Open(*flagDir+"/bolt/bolt.db", 0777, opts)
 	y.Check(err)
 	return boltdb
-}
-
-func getLmdb() *lmdb.Env {
-	lmdbEnv, err := lmdb.NewEnv()
-	y.Check(err)
-	err = lmdbEnv.SetMaxReaders(math.MaxInt64)
-	y.Check(err)
-	err = lmdbEnv.SetMaxDBs(1)
-	y.Check(err)
-	err = lmdbEnv.SetMapSize(1 << 38) // ~273Gb
-	y.Check(err)
-
-	err = lmdbEnv.Open(*flagDir+"/lmdb", lmdb.Readonly|lmdb.NoReadahead, 0777)
-	y.Check(err)
-	return lmdbEnv
 }
 
 func newKey() []byte {
@@ -161,45 +133,6 @@ func BenchmarkReadRandomBadger(b *testing.B) {
 	})
 }
 
-func BenchmarkReadRandomRocks(b *testing.B) {
-	rdb := getRocks()
-	defer rdb.Close()
-	runRandomReadBenchmark(b, "rocksdb", func(c *hitCounter, pb *testing.PB) {
-		for pb.Next() {
-			key := newKey()
-			rdb_slice, err := rdb.Get(key)
-			if err != nil {
-				c.errored++
-			} else if rdb_slice.Size() > 0 {
-				c.found++
-			} else {
-				c.notFound++
-			}
-		}
-	})
-}
-
-func BenchmarkReadRandomLevel(b *testing.B) {
-	ldb := getLevelDB()
-	defer ldb.Close()
-
-	runRandomReadBenchmark(b, "leveldb", func(c *hitCounter, pb *testing.PB) {
-		for pb.Next() {
-			key := newKey()
-			v, err := ldb.Get(key, nil)
-			if err == leveldb.ErrNotFound {
-				c.notFound++
-			} else if err != nil {
-				c.errored++
-			} else {
-				y.AssertTruef(len(v) == *flagValueSize,
-					"Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
-				c.found++
-			}
-		}
-	})
-}
-
 func BenchmarkReadRandomBolt(b *testing.B) {
 	boltdb := getBoltDB()
 	defer boltdb.Close()
@@ -225,44 +158,6 @@ func BenchmarkReadRandomBolt(b *testing.B) {
 	})
 }
 
-func BenchmarkReadRandomLmdb(b *testing.B) {
-	lmdbEnv := getLmdb()
-	defer lmdbEnv.Close()
-
-	var lmdbDBI lmdb.DBI
-	// Acquire handle
-	err := lmdbEnv.View(func(txn *lmdb.Txn) error {
-		var err error
-		lmdbDBI, err = txn.OpenDBI("bench", 0)
-		return err
-	})
-	y.Check(err)
-	defer lmdbEnv.CloseDBI(lmdbDBI)
-
-	runRandomReadBenchmark(b, "lmdb", func(c *hitCounter, pb *testing.PB) {
-		err := lmdbEnv.View(func(txn *lmdb.Txn) error {
-			txn.RawRead = true
-			for pb.Next() {
-				key := newKey()
-				v, err := txn.Get(lmdbDBI, key)
-				if lmdb.IsNotFound(err) {
-					c.notFound++
-					continue
-				} else if err != nil {
-					c.errored++
-					continue
-				}
-				y.AssertTruef(len(v) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v), *flagValueSize)
-				c.found++
-			}
-			return nil
-		})
-		if err != nil {
-			y.Check(err)
-		}
-	})
-}
-
 func safecopy(dst []byte, src []byte) []byte {
 	if cap(dst) < len(src) {
 		dst = make([]byte, len(src))
@@ -270,33 +165,6 @@ func safecopy(dst []byte, src []byte) []byte {
 	dst = dst[0:len(src)]
 	copy(dst, src)
 	return dst
-}
-
-func BenchmarkIterateRocks(b *testing.B) {
-	rdb := getRocks()
-	defer rdb.Close()
-	k := make([]byte, 1024)
-	v := make([]byte, Mi)
-	b.ResetTimer()
-	b.Run("rocksdb-iterate", func(b *testing.B) {
-		for j := 0; j < b.N; j++ {
-			itr := rdb.NewIterator()
-			var count int
-			for itr.SeekToFirst(); itr.Valid(); itr.Next() {
-				{
-					// do some processing.
-					k = safecopy(k, itr.Key().Data())
-					v = safecopy(v, itr.Value().Data())
-				}
-				count++
-				print(count)
-				if count >= 2*Mi {
-					break
-				}
-			}
-			b.Logf("[%d] Counted %d keys\n", j, count)
-		}
-	})
 }
 
 func BenchmarkIterateBolt(b *testing.B) {
@@ -315,64 +183,6 @@ func BenchmarkIterateBolt(b *testing.B) {
 				y.AssertTrue(boltBkt != nil)
 				cur := boltBkt.Cursor()
 				for k1, v1 := cur.First(); k1 != nil; k1, v1 = cur.Next() {
-					y.AssertTruef(len(v1) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v1), *flagValueSize)
-
-					// do some processing.
-					k = safecopy(k, k1)
-					v = safecopy(v, v1)
-
-					count++
-					print(count)
-					if count >= 2*Mi {
-						break
-					}
-				}
-				return nil
-			})
-			y.Check(err)
-			b.Logf("[%d] Counted %d keys\n", j, count)
-		}
-	})
-}
-
-func BenchmarkIterateLmdb(b *testing.B) {
-	lmdbEnv := getLmdb()
-	defer lmdbEnv.Close()
-
-	var lmdbDBI lmdb.DBI
-	// Acquire handle
-	err := lmdbEnv.View(func(txn *lmdb.Txn) error {
-		var err error
-		lmdbDBI, err = txn.OpenDBI("bench", 0)
-		return err
-	})
-	y.Check(err)
-	defer lmdbEnv.CloseDBI(lmdbDBI)
-
-	k := make([]byte, 1024)
-	v := make([]byte, Mi)
-	b.ResetTimer()
-
-	b.Run("lmdb-iterate", func(b *testing.B) {
-		for j := 0; j < b.N; j++ {
-			var count int
-			err = lmdbEnv.View(func(txn *lmdb.Txn) error {
-				txn.RawRead = true
-				cur, err := txn.OpenCursor(lmdbDBI)
-				if err != nil {
-					return err
-				}
-				defer cur.Close()
-
-				for {
-					k1, v1, err := cur.Get(nil, nil, lmdb.Next)
-					if lmdb.IsNotFound(err) {
-						return nil
-					}
-					if err != nil {
-						return err
-					}
-
 					y.AssertTruef(len(v1) == *flagValueSize, "Assertion failed. value size is %d, expected %d", len(v1), *flagValueSize)
 
 					// do some processing.
