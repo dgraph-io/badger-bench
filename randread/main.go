@@ -14,7 +14,12 @@ import (
 	"github.com/HdrHistogram/hdrhistogram-go"
 	"github.com/dgraph-io/badger/y"
 	"github.com/pkg/profile"
-	"github.com/traetox/goaio"
+
+	//"github.com/traetox/goaio"
+	// problem with build (specified for linux in aio.go)
+	// manually set parameters from https://pkg.go.dev/syscall
+	// to do: figure out how build flags work
+	"github.com/joshua-goldstein/goaio"
 )
 
 var (

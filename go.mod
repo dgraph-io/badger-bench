@@ -19,6 +19,7 @@ require (
 	github.com/dgraph-io/ristretto v0.0.2 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/protobuf v1.3.1 // indirect
+	github.com/joshua-goldstein/goaio v0.0.0-20220612202629-9c581232a33b // indirect
 	github.com/pkg/errors v0.8.1 // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 )
