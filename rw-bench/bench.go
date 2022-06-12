@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
-	"github.com/dgraph-io/badger-bench/rdb"
 	"github.com/dgraph-io/badger-bench/store"
 	"github.com/dgraph-io/badger/y"
 )
