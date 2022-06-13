@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+
 	//	"io/ioutil"
 	"math/rand"
 	"os"
@@ -60,7 +61,8 @@ func BenchmarkRead(b *testing.B) {
 
 						if mode == modeMmap {
 							mmap, err = syscall.Mmap(int(f.Fd()), 0, n,
-								syscall.PROT_READ, syscall.MAP_PRIVATE|syscall.MAP_POPULATE)
+								//syscall.PROT_READ, syscall.MAP_PRIVATE|syscall.MAP_POPULATE)
+								syscall.PROT_READ, syscall.MAP_PRIVATE|0x8000)
 							y.Check(err)
 						} else if mode == modeRAM {
 							f.ReadAt(mmap, 0)
