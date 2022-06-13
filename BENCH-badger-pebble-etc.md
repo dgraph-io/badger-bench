@@ -1,51 +1,29 @@
-# lmdb-go vs BoltDB vs Badger
+# Benchmarking Badger, Pebble, BoltDB
 
 - Badger benchmarking repo: https://github.com/dgraph-io/badger-bench
-- lmdb-go: https://github.com/bmatsuo/lmdb-go
 - BoltDB: https://github.com/boltdb/bolt
+- Pebble: https://github.com/cockroachdb/pebble
+- Pogreb: https://github.com/akrylysov/pogreb
+
 # Coding
-## lmdb-go
-- lmdb-go docs: https://godoc.org/github.com/bmatsuo/lmdb-go/lmdb
 
-
-- lmdb does not have a method to do a batched write explicitly. We benchmarked two different ways to do batched writes: one with an explicit txn and another without. The benchmark code for that is in `populate/lmdb_txn_bench_test.go`. 
-
-
-- Benchmark results for batched writes on Lenovo Thinkpad T470:
-    $ go test --bench BenchmarkLmdbBatch --dir /tmp --benchtime 30s
-    BenchmarkLmdbBatch/SimpleBatched-4                 20000           2069261 ns/op
-    BenchmarkLmdbBatch/TxnBatched-4                    20000           2114079 ns/op
-    PASS
-    ok      github.com/dgraph-io/badger-bench/populate      125.410s
-
-
-    $ go test --bench BenchmarkLmdbBatch --dir /tmp --benchtime 45s
-    BenchmarkLmdbBatch/SimpleBatched-4                 30000           2037230 ns/op
-    BenchmarkLmdbBatch/TxnBatched-4                    30000           2147498 ns/op
-    PASS
-    ok      github.com/dgraph-io/badger-bench/populate      167.050s
-
-Based on results above, we can conclude that batched update inside transactions is slightly more expensive.
-
-
-- lmdb needs to lock the goroutine to a single OS thread at runtime:
-  > Write transactions (those created without the Readonly flag) must be created in a goroutine that has been locked to its thread by calling the function `runtime.LockOSThread`. Futhermore, all methods on such transactions must be called from the goroutine which created them. This is a fundamental limitation of LMDB even when using the NoTLS flag (which the package always uses). The `Env.Update` method assists the programmer by calling runtime.LockOSThread automatically but it cannot sufficiently abstract write transactions to make them completely safe in Go.
 ## BoltDB
 - Pull request to badger-bench repo: https://github.com/dgraph-io/badger-bench/pull/7
 - Used `NoSync` option while writing to avoid fsync after every commit. Need to determine if it actually helps
 - After a bit of testing, we switched to `bolt.DB.Batch` method to populate the data instead of `bolt.DB.Update`.
+
 # Launching AWS Instance to benchmark
 - AMI: **Ubuntu Server 16.04 LTS (HVM), SSD Volume Type** - *ami-10547475*
 
 
 - Instance Type: **i3-large**
-![2 vCPUs, 15.25Gb, 1x475 (SSD)](https://d2mxuefqeaa7sj.cloudfront.net/s_CE68978A348E19B7DD1520A31AD4737F14F8B2D2704BBCAA008EA13523642F20_1502103139556_Screenshot+from+2017-08-07+16-21-06.png)
+to do
 
 - Additional instance details: Dedicated instance
-![](https://d2mxuefqeaa7sj.cloudfront.net/s_CE68978A348E19B7DD1520A31AD4737F14F8B2D2704BBCAA008EA13523642F20_1502103250117_Screenshot+from+2017-08-07+16-23-30.png)
+to do
 
 - Storage Details
-![Why does it say 8GiB?](https://d2mxuefqeaa7sj.cloudfront.net/s_CE68978A348E19B7DD1520A31AD4737F14F8B2D2704BBCAA008EA13523642F20_1502103505922_Screenshot+from+2017-08-07+16-28-04.png)
+to do
 
 # Setting Up Instance
 - Make sure SSD instance is available: `lsblk`
@@ -113,24 +91,6 @@ Based on results above, we can conclude that batched update inside transactions 
 # Benchmarking
 - Install `sar` to monitor disk activity: `sudo apt install sysstat`
 - Always remember to use the mounted SSD disk to do writes. The home directory is mounted on EBS and gives very little IOPS.
-## Rerunning BenchmarkLmdbBatch
-
-We rerun the lmdb batched write benchmarks above, on this instance
-
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench/populate$ go test --bench BenchmarkLmdbBatch --dir /mnt/data --benchtime 30s
-    BenchmarkLmdbBatch/SimpleBatched-2                200000            321828 ns/op
-    BenchmarkLmdbBatch/TxnBatched-2                   200000            324301 ns/op
-    PASS
-    ok      github.com/dgraph-io/badger-bench/populate      135.817s
-
-
-
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench/populate$ go test --bench BenchmarkLmdbBatch --dir /mnt/data --benchtime 45s
-    BenchmarkLmdbBatch/SimpleBatched-2                200000            329147 ns/op
-    BenchmarkLmdbBatch/TxnBatched-2                   200000            327282 ns/op
-    PASS
-    ok      github.com/dgraph-io/badger-bench/populate      138.006s
-
 
 ## Running `fio` to get baseline IOPS numbers
 
@@ -195,59 +155,6 @@ As you can see below, this instance gives about **94k iops** at **4k block size*
       nvme0n1: ios=8387535/30, merge=0/0, ticks=822124/0, in_queue=825008, util=100.00%
     
 ## Benchmarking `--keys_mil 5` and `--valsz 16384`
-
-**Time population of lmdb** `**--valsz 16384**` **and** `**--keys_mil 5**`
-
-    $ /usr/bin/time -v ./populate --kv lmdb --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb
-    TOTAL KEYS TO WRITE:   5.00M
-    Init lmdb
-    [0000] Write key rate per minute:  11.00K. Total:  11.00K
-    [0001] Write key rate per minute:  30.00K. Total:  30.00K
-    [0002] Write key rate per minute:  45.00K. Total:  45.00K
-    [0003] Write key rate per minute:  62.00K. Total:  62.00K
-    …<snip>…
-    [0685] Write key rate per minute: 332.00K. Total:   4.98M
-    [0686] Write key rate per minute: 338.00K. Total:   4.98M
-    [0687] Write key rate per minute: 326.00K. Total:   4.99M
-    [0688] Write key rate per minute: 332.00K. Total:   4.99M
-    [0689] Write key rate per minute: 337.00K. Total:   5.00M
-    closing lmdb
-    
-    WROTE 5004000 KEYS
-            Command being timed: "./populate --kv lmdb --valsz 16384 --keys_mil 5 --dir /mnt/data/16kb"
-            User time (seconds): 344.08
-            System time (seconds): 172.82
-            Percent of CPU this job got: 74%
-            Elapsed (wall clock) time (h:mm:ss or m:ss): 11:31.16
-            Average shared text size (kbytes): 0
-            Average unshared data size (kbytes): 0
-            Average stack size (kbytes): 0
-            Average total size (kbytes): 0
-            Maximum resident set size (kbytes): 10933704
-            Average resident set size (kbytes): 0
-            Major (requiring I/O) page faults: 1166660
-            Minor (reclaiming a frame) page faults: 438898
-            Voluntary context switches: 3321574
-            Involuntary context switches: 249619
-            Swaps: 0
-            File system inputs: 257987728
-            File system outputs: 250540080
-            Socket messages sent: 0
-            Socket messages received: 0
-            Signals delivered: 0
-            Page size (bytes): 4096
-            Exit status: 0
-    
-
-
-    $ du -sh /mnt/data/16kb/lmdb/
-    61G     /mnt/data/16kb/lmdb/
-
-
-    $ sar -d 1 -p
-    Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
-    Average:      nvme0n1   6223.99 386668.41 193847.54     93.27    483.51     78.20      0.14     86.43
-    
 
 **Time population of BoltDB** `**--valsz 16384**` **and** `**--keys_mil 5**`
 
@@ -353,21 +260,6 @@ As you can see below, this instance gives about **94k iops** at **4k block size*
     $ du -sh /mnt/data/16kb/badger/
     77G     /mnt/data/16kb/badger/
 
-
-**Time random read for lmdb** `**--keys_mil 5**` ****`**--valsz 16384**`
-Performed by opening the DB with `lmdb.NoReadahead` option.
-
-    go test -v --bench BenchmarkReadRandomLmdb --keys_mil 5 --valsz 16384 --dir /mnt/data/16kb -benchtime 3m --timeout 10m                                                       
-    BenchmarkReadRandomLmdb/read-randomlmdb-128             100000000             2015 ns/op
-    --- BENCH: BenchmarkReadRandomLmdb
-            bench_test.go:104: lmdb: 63257263 keys had valid values.
-            bench_test.go:105: lmdb: 36742737 keys had no values
-            bench_test.go:106: lmdb: 0 keys had errors
-            bench_test.go:107: lmdb: 100000000 total keys looked at
-            bench_test.go:108: lmdb: hit rate : 0.63
-    PASS
-    ok      github.com/dgraph-io/badger-bench       311.542s
-
 **Time random read for boltdb** `**--keys_mil 5**` ****`**--valsz 16384**`
 
     $ go test -v --bench BenchmarkReadRandomBolt --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 10m --benchtime 3m
@@ -393,29 +285,6 @@ Performed by opening the DB with `lmdb.NoReadahead` option.
             bench_test.go:108: badger: hit rate : 0.63
     PASS
     ok      github.com/dgraph-io/badger-bench       339.063s
-
-**Time iterate for lmdb** `**--keys_mil 5**` ****`**--valsz 16384**`
-
-    $ go test -v --bench BenchmarkIterateLmdb --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 60m
-    ....................
-    BenchmarkIterateLmdb/lmdb-iterate-128                      1    488071445140 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:275: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       488.454s
-    
-    
-
-w/ `lmdb.NoReadahead`
-
-
-    $ go test -v --bench BenchmarkIterateLmdb --keys_mil 5 --valsz 16384 --dir "/mnt/data/16kb" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            2745882237254 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       2746.396s
 
 **Time iterate for boltdb** `**--keys_mil 5**` ****`**--valsz 16384**`
 There is a lot of variability in this. Recorded runs of `1122s` and `1329s` as well
@@ -458,117 +327,6 @@ There is a lot of variability in this. Recorded runs of `1122s` and `1329s` as w
 
 
 ## Benchmarking `--keys_mil 75` and `--valsz 1024`
-
-**Time population of lmdb** `**--valsz 1024**` **and** `**--keys_mil 75**`
-First run, we accidentally ran into an issue because we exceeded the MapSize setting for the database (we had set it to 64gb). The populate run terminated prematurely
-
-    $ /usr/bin/time -v ./populate --kv lmdb --valsz 1024 --keys_mil 75 --dir /mnt/data/1kb
-    TOTAL KEYS TO WRITE:  75.00M
-    Init lmdb
-    [0000] Write key rate per minute:  43.00K. Total:  43.00K
-    [0001] Write key rate per minute:  70.00K. Total:  70.00K
-    [0002] Write key rate per minute:  96.00K. Total:  96.00K
-    …<snip>…
-    [7521] Write key rate per minute: 215.00K. Total:  43.77M
-    [7522] Write key rate per minute: 219.00K. Total:  43.78M
-    [7523] Write key rate per minute: 223.00K. Total:  43.78M
-    2017/08/08 08:57:17 mdb_put: MDB_MAP_FULL: Environment mapsize limit reached
-    
-    github.com/dgraph-io/badger/y.Wrap
-            /home/ubuntu/go/src/github.com/dgraph-io/badger/y/error.go:71
-    github.com/dgraph-io/badger/y.Check
-            /home/ubuntu/go/src/github.com/dgraph-io/badger/y/error.go:43
-    main.writeBatch
-            /home/ubuntu/go/src/github.com/dgraph-io/badger-bench/populate/main.go:86
-    main.main.func5
-            /home/ubuntu/go/src/github.com/dgraph-io/badger-bench/populate/main.go:221
-    runtime.goexit
-            /usr/lib/go-1.8/src/runtime/asm_amd64.s:2197
-    Command exited with non-zero status 1
-            Command being timed: "./populate --kv lmdb --valsz 1024 --keys_mil 75 --dir /mnt/data/1kb"
-            User time (seconds): 558.00
-            System time (seconds): 1575.94
-            Percent of CPU this job got: 28%
-            Elapsed (wall clock) time (h:mm:ss or m:ss): 2:05:25
-            Average shared text size (kbytes): 0
-            Average unshared data size (kbytes): 0
-            Average stack size (kbytes): 0
-            Average total size (kbytes): 0
-            Maximum resident set size (kbytes): 14542052
-            Average resident set size (kbytes): 0
-            Major (requiring I/O) page faults: 23234347
-            Minor (reclaiming a frame) page faults: 4794003
-            Voluntary context switches: 37399045
-            Involuntary context switches: 302805
-            Swaps: 0
-            File system inputs: 4911778792
-            File system outputs: 1046433264
-            Socket messages sent: 0
-            Socket messages received: 0
-            Signals delivered: 0
-            Page size (bytes): 4096
-            Exit status: 1
-    
-
-
-    $ sar -d 1 -p
-    …<snip>…
-    
-    Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
-    Average:      nvme0n1  24231.12 665881.00 146593.00     33.53     54.90      2.27      0.04     90.30
-
-Ran the benchmark again after setting the map size to about 270Gb
-
-Noticed that the Write key rate steadily dropped over time, after starting at close to a  1M keys a minute to a steady 200K keys a minute.
-
-    /usr/bin/time -v ./populate --kv lmdb --valsz 1024 --keys_mil 75 --dir /mnt/data/1kb
-    TOTAL KEYS TO WRITE:  75.00M
-    Init lmdb
-    [0000] Write key rate per minute:  52.00K. Total:  52.00K
-    [0001] Write key rate per minute:  79.00K. Total:  79.00K
-    [0002] Write key rate per minute: 104.00K. Total: 104.00K
-    …<snip>…
-    [16672] Write key rate per minute: 189.00K. Total:  74.99M
-    [16673] Write key rate per minute: 192.00K. Total:  75.00M
-    [16674] Write key rate per minute: 185.00K. Total:  75.00M
-    closing lmdb
-    
-    WROTE 75000000 KEYS
-            Command being timed: "./populate --kv lmdb --valsz 1024 --keys_mil 75 --dir /mnt/data/1kb"
-            User time (seconds): 1010.87
-            System time (seconds): 3288.08
-            Percent of CPU this job got: 25%
-            Elapsed (wall clock) time (h:mm:ss or m:ss): 4:37:55
-            Average shared text size (kbytes): 0
-            Average unshared data size (kbytes): 0
-            Average stack size (kbytes): 0
-            Average total size (kbytes): 0
-            Maximum resident set size (kbytes): 14641980
-            Average resident set size (kbytes): 0
-            Major (requiring I/O) page faults: 52980386
-            Minor (reclaiming a frame) page faults: 7319073
-            Voluntary context switches: 78258475
-            Involuntary context switches: 391508
-            Swaps: 0
-            File system inputs: 11860339200
-            File system outputs: 1815854784
-            Socket messages sent: 0
-            Socket messages received: 0
-            Signals delivered: 0
-            Page size (bytes): 4096
-            Exit status: 0
-
-
-    $ sar -d 1 -p
-    …<snip>…
-    
-    Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
-    Average:      nvme0n1  18721.60 722433.96 108669.16     44.39     41.09      2.19      0.05     91.24
-    
-
-
-    $ du -sh /mnt/data/1kb/lmdb/
-    92G     /mnt/data/1kb/lmdb/
 
 **Time population of boltdb** `**--valsz 1024**` **and** `**--keys_mil 75**`
 
@@ -672,20 +430,6 @@ Noticed that the Write key rate steadily dropped over time, after starting at cl
     $ du -sh /mnt/data/1kb/badger/
     77G     /mnt/data/1kb/badger/cd ..
 
-
-**Time random read for lmdb** `**--keys_mil 75**` ****`**--valsz 1024**`
-
-    $ go test -v --bench BenchmarkReadRandomLmdb --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 10m --benchtime 3m
-    BenchmarkReadRandomLmdb/read-randomlmdb-128             20000000             10710 ns/op
-    --- BENCH: BenchmarkReadRandomLmdb
-            bench_test.go:108: lmdb: 12643872 keys had valid values.
-            bench_test.go:109: lmdb: 7356128 keys had no values
-            bench_test.go:110: lmdb: 0 keys had errors
-            bench_test.go:111: lmdb: 20000000 total keys looked at
-            bench_test.go:112: lmdb: hit rate : 0.63
-    PASS
-    ok      github.com/dgraph-io/badger-bench       226.968s
-
 **Time random read for boltdb** `**--keys_mil 75**` ****`**--valsz 1024**`
 
     $ go test -v --bench BenchmarkReadRandomBolt --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 10m --benchtime 3m
@@ -711,41 +455,6 @@ Noticed that the Write key rate steadily dropped over time, after starting at cl
             bench_test.go:108: badger: hit rate : 0.63
     PASS
     ok      github.com/dgraph-io/badger-bench       351.715s
-
-**Time iterate for lmdb** `**--keys_mil 75**` ****`**--valsz 1024**`
-time w/ `lmdb.Readahead`
-
-    $ go test -v --bench BenchmarkIterateLmdb --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            105376471805 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       105.602s
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            2248460380 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       2.556s
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            2247389381 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       2.448s
-
-time w/o `lmdb.NoReadahead`
-
-    go test -v --bench BenchmarkIterateLmdb --keys_mil 75 --valsz 1024 --dir "/mnt/data/1kb" --timeout 60m
-    ....................
-    BenchmarkIterateLmdb/lmdb-iterate-128                      1    259171636211 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:275: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       259.509s
 
 **Time iterate for boltdb** `**--keys_mil 75**` ****`**--valsz 1024**`
 
@@ -831,55 +540,6 @@ At this point, our local SSD was pretty full, with only 100Gb of free space. Thi
     tmpfs           7.5G     0  7.5G   0% /sys/fs/cgroup
     tmpfs           1.5G     0  1.5G   0% /run/user/1000
     /dev/nvme0n1    436G   71M  414G   1% /mnt/data
-
-**Time population of lmdb** `**--valsz 128**` **and** `**--keys_mil 250**`
-
-    $ /usr/bin/time -v ./populate --kv lmdb --valsz 128 --keys_mil 250 --dir /mnt/data/128b
-    TOTAL KEYS TO WRITE: 250.00M
-    Init lmdb
-    [0000] Write key rate per minute:  85.00K. Total:  85.00K
-    [0001] Write key rate per minute: 125.00K. Total: 125.00K
-    [0002] Write key rate per minute: 162.00K. Total: 162.00K
-    …<snip>…
-    [27442] Write key rate per minute: 313.00K. Total: 249.99M
-    [27443] Write key rate per minute: 319.00K. Total: 250.00M
-    [27444] Write key rate per minute: 309.00K. Total: 250.00M
-    closing lmdb
-    
-    WROTE 250008000 KEYS
-            Command being timed: "./populate --kv lmdb --valsz 128 --keys_mil 250 --dir /mnt/data/128b"
-            User time (seconds): 2052.60
-            System time (seconds): 3901.18
-            Percent of CPU this job got: 22%
-            Elapsed (wall clock) time (h:mm:ss or m:ss): 7:24:45
-            Average shared text size (kbytes): 0
-            Average unshared data size (kbytes): 0
-            Average stack size (kbytes): 0
-            Average total size (kbytes): 0
-            Maximum resident set size (kbytes): 14846000
-            Average resident set size (kbytes): 0
-            Major (requiring I/O) page faults: 76802692
-            Minor (reclaiming a frame) page faults: 23967298
-            Voluntary context switches: 91777445
-            Involuntary context switches: 539592
-            Swaps: 0
-            File system inputs: 13858641520
-            File system outputs: 2239372136
-            Socket messages sent: 0
-            Socket messages received: 0
-            Signals delivered: 0
-            Page size (bytes): 4096
-            Exit status: 0
-    
-
-
-    $ sar -d 1 -p
-    Average:          DEV       tps  rd_sec/s  wr_sec/s  avgrq-sz  avgqu-sz     await     svctm     %util
-    Average:      nvme0n1  23664.15 685001.55 124322.31     34.20     52.01      2.20      0.04     91.01
-
-
-    $ du -sh /mnt/data/128b/lmdb/
-    36G     /mnt/data/128b/lmdb/
 
 **Time population of boltdb** `**--valsz 128**` **and** `**--keys_mil 250**`
 
@@ -979,18 +639,7 @@ After making the changes above, the populate run completed successfully.
     $ du -sh /mnt/data/128b/badger/
     49G     /mnt/data/128b/badger/
 
-**Time random read for lmdb** `**--keys_mil 250**` ****`**--valsz 128**`
-
-    $ go test -v --bench BenchmarkReadRandomLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 10m --benchtime 3m
-    BenchmarkReadRandomLmdb/read-randomlmdb-128             30000000              7858 ns/op
-    --- BENCH: BenchmarkReadRandomLmdb
-            bench_test.go:104: lmdb: 18963166 keys had valid values.
-            bench_test.go:105: lmdb: 11036834 keys had no values
-            bench_test.go:106: lmdb: 0 keys had errors
-            bench_test.go:107: lmdb: 30000000 total keys looked at
-            bench_test.go:108: lmdb: hit rate : 0.63
-    PASS
-    ok      github.com/dgraph-io/badger-bench       246.661s
+      github.com/dgraph-io/badger-bench       246.661s
 
 **Time random read for boltdb** `**--keys_mil 250**` ****`**--valsz 128**`
 
@@ -1018,59 +667,6 @@ After making the changes above, the populate run completed successfully.
             bench_test.go:108: badger: hit rate : 0.63
     PASS
     ok      github.com/dgraph-io/badger-bench       277.471s
-
-**Time iterate for lmdb** `**--keys_mil 250**` ****`**--valsz 128**`
-Times for 3 consecutive runs w/ `lmdb.NoReadAhead`
-
-    $ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            13819169930 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       13.881s
-    ubuntu@ip-172-31-47-171:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128               ........................................       2         720681417 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-            bench_test.go:317: [0] Counted 2000000 keys
-            bench_test.go:317: [1] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       2.393s
-    ubuntu@ip-172-31-47-171:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128               ........................................       2         721250591 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-            bench_test.go:317: [0] Counted 2000000 keys
-            bench_test.go:317: [1] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       2.392s
-
-Times for 3 consecutive runs w/o `lmdb.NoReadahead`
-
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            19946953386 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       20.219s
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            1319455375 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       1.632s
-    ubuntu@ip-172-31-39-80:~/go/src/github.com/dgraph-io/badger-bench$ go test -v --bench BenchmarkIterateLmdb --keys_mil 250 --valsz 128 --dir "/mnt/data/128b" --timeout 60m
-    ....................BenchmarkIterateLmdb/lmdb-iterate-128                      1
-            1129621638 ns/op
-    --- BENCH: BenchmarkIterateLmdb/lmdb-iterate-128
-            bench_test.go:317: [0] Counted 2000000 keys
-    PASS
-    ok      github.com/dgraph-io/badger-bench       1.398s
-    
-    
 
 **Time iterate for boltdb** `**--keys_mil 250**` ****`**--valsz 128**`
 3 consecutive runs
