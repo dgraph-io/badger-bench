@@ -30,10 +30,7 @@ const Mf float64 = 1000000
 func getBadger() (*badger.DB, error) {
 	opt := badger.DefaultOptions(*flagDir + "/badger")
 	opt.TableLoadingMode = options.LoadToRAM
-	//opt.ReadOnly = true
-	//https://github.com/dgraph-io/badger/issues/478
-	// joshua 6/12: not sure why this needed to change
-	opt.ReadOnly = false
+	opt.ReadOnly = true
 
 	return badger.Open(opt)
 }
