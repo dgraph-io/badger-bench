@@ -1,0 +1,2 @@
+1. benchmarks use rand.Int, but seed is not changed.  We should randomize 
+appropriately.
